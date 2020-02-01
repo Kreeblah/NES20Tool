@@ -22,9 +22,9 @@ Usage
 
 To use this tool, compile it for your favorite OS and then run it with the following options:
 
-`  -operation `
-`    	Operation to perform on the ROM set.  {read|write}`
-`  -rom-path string`
-`    	The path to a directory with NES ROMs to use for the operation.`
-`  -xml-file string`
-`    	The path to an XML file to use for the operation.`
+    -operation  
+    	Operation to perform on the ROM set.  {read|write}  
+    -rom-path string  
+    	The path to a directory with NES ROMs to use for the operation.  
+    -xml-file string  
+    	The path to an XML file to use for the operation.
