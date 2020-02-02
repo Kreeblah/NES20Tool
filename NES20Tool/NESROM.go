@@ -87,9 +87,9 @@ func DecodeNESROM(inputFile []byte) (*NESROM, error) {
 	romData.ROMData = rawROMBytes
 
 	if fileSize > 15 {
-		romData.Size = fileSize
-	} else {
 		romData.Size = fileSize - 16
+	} else {
+		romData.Size = fileSize
 		return romData, &NESROMError{text: "File too small to be a headered NES ROM."}
 	}
 
