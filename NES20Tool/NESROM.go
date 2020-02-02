@@ -104,13 +104,13 @@ func DecodeNESROM(inputFile []byte) (*NESROM, error) {
 	headerData := &NESHeader{}
 
 	PRGROMBytes := make([]byte, 2)
-	PRGROMBytes[0] = inputFile[9] & 0b00001111
-	PRGROMBytes[1] = inputFile[4]
+	PRGROMBytes[0] = inputFile[4]
+	PRGROMBytes[1] = inputFile[9] & 0b00001111
 	headerData.PRGROMSize = binary.LittleEndian.Uint16(PRGROMBytes)
 
 	CHRROMBytes := make([]byte, 2)
-	CHRROMBytes[0] = (inputFile[9] & 0b11110000) >> 4
-	CHRROMBytes[1] = inputFile[5]
+	CHRROMBytes[0] = inputFile[5]
+	CHRROMBytes[1] = (inputFile[9] & 0b11110000) >> 4
 	headerData.CHRROMSize = binary.LittleEndian.Uint16(CHRROMBytes)
 
 	headerData.PRGRAMSize = inputFile[10] & 0b00001111
@@ -166,11 +166,11 @@ func EncodeNESROM(romModel *NESROM) ([]byte, error) {
 
 	PRGROMBytes := make([]byte, 2)
 	binary.LittleEndian.PutUint16(PRGROMBytes, romModel.Header.PRGROMSize)
-	headerBytes[4] = PRGROMBytes[1]
+	headerBytes[4] = PRGROMBytes[0]
 
 	CHRROMBytes := make([]byte, 2)
 	binary.LittleEndian.PutUint16(CHRROMBytes, romModel.Header.CHRROMSize)
-	headerBytes[5] = CHRROMBytes[1]
+	headerBytes[5] = CHRROMBytes[0]
 
 	MapperBytes := make([]byte, 2)
 	binary.LittleEndian.PutUint16(MapperBytes, romModel.Header.Mapper)
@@ -200,8 +200,8 @@ func EncodeNESROM(romModel *NESROM) ([]byte, error) {
 	headerBytes[8] = MapperBytes[1] & 0b00001111
 	headerBytes[8] = headerBytes[8] | ((romModel.Header.SubMapper & 0b00001111) << 4)
 
-	headerBytes[9] = PRGROMBytes[0] & 0b00001111
-	headerBytes[9] = headerBytes[9] | ((CHRROMBytes[0] & 0b00001111) << 4)
+	headerBytes[9] = PRGROMBytes[1] & 0b00001111
+	headerBytes[9] = headerBytes[9] | ((CHRROMBytes[1] & 0b00001111) << 4)
 
 	headerBytes[10] = 0b00000000
 	if romModel.Header.PRGRAMSize > 0 {
