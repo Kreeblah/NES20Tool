@@ -1,9 +1,9 @@
 NES20Tool
 =========
 
-This tool is intended to read NES 2.0 headers and generate an XML file reflecting the syntactic meaning of the headers, as well as to take an XML file in the same format and apply it to a ROM set.
+This tool is intended to read NES headers (giving a preference to 2.0 headers) and generate an XML file reflecting the syntactic meaning of the headers, as well as to take an XML file in the same format and apply it to a ROM set.
 
-The tool uses the SHA256 hash of a ROM to determine which ROM the file contains, ignoring any existing iNES or NES 2.0 header currently on the ROM (if any; it also works with headerless ROMs for applying headers).  Other hashes are calculated and provided in generated XML files for convenience, but they have no significant meaning within this application.
+The tool uses the SHA256 hash of a ROM to determine which ROM the file contains, ignoring the existing iNES or NES 2.0 header currently on the ROM (if any; it also works with headerless ROMs for applying headers), as well as any trainer data.  Other hashes are calculated and provided in generated XML files for convenience, but they have no significant meaning within this application.
 
 Warning
 -------
@@ -22,9 +22,17 @@ Usage
 
 To use this tool, compile it for your favorite OS and then run it with the following options:
 
-    -operation  
-    	Operation to perform on the ROM set.  {read|write}  
-    -rom-path string  
-    	The path to a directory with NES ROMs to use for the operation.  
-    -xml-file string  
+    -enable-ines
+    	Enable iNES header support.  iNES headers will always be lower priority for operations than NES 2.0 headers.
+    -operation string
+    	Operation to perform on the ROM set.  {read|write}
+    -organization
+    	Read/write relative file location information for automatic organization.
+    -preserve-trainers
+    	Preserve trainers in read/write process.
+    -rom-base-path string
+    	The path to use for writing organized roms.
+    -rom-source-path string
+    	The path to a directory with NES ROMs to use for the operation.
+    -xml-file string
     	The path to an XML file to use for the operation.

@@ -33,7 +33,7 @@ var (
 	NES_20_OR_MASK   = byte(0xFB)
 )
 
-type NESHeader struct {
+type NES20Header struct {
 	PRGROMSize          uint16
 	CHRROMSize          uint16
 	PRGRAMSize          uint8
@@ -55,16 +55,32 @@ type NESHeader struct {
 	DefaultExpansion    uint8
 }
 
+type NES10Header struct {
+	PRGROMSize    uint8
+	CHRROMSize    uint8
+	MirroringType bool
+	Battery       bool
+	Trainer       bool
+	FourScreen    bool
+	Mapper        uint8
+	VsUnisystem   bool
+	PRGRAMSize    uint8
+	TVSystem      bool
+}
+
 type NESROM struct {
-	Name     string
-	Filename string
-	Size     uint64
-	CRC32    uint32
-	MD5      [16]byte
-	SHA1     [20]byte
-	SHA256   [32]byte
-	Header   *NESHeader
-	ROMData  []byte
+	Name         string
+	Filename     string
+	RelativePath string
+	Size         uint64
+	CRC32        uint32
+	MD5          [16]byte
+	SHA1         [20]byte
+	SHA256       [32]byte
+	Header20     *NES20Header
+	Header10     *NES10Header
+	ROMData      []byte
+	TrainerData  []byte
 }
 
 type NESROMError struct {
@@ -75,21 +91,25 @@ func (r *NESROMError) Error() string {
 	return r.text
 }
 
-func DecodeNESROM(inputFile []byte) (*NESROM, error) {
+func DecodeNESROM(inputFile []byte, enableInes bool, preserveTrainer bool, relativeLocation string) (*NESROM, error) {
+	headerVersion := 2
 	fileSize := uint64(len(inputFile))
-	rawROMBytes, _ := getStrippedRom(inputFile)
+	rawROMBytes, rawTrainerBytes, _ := getStrippedRom(inputFile)
 
 	romData := &NESROM{}
+	romData.RelativePath = relativeLocation
 	romData.CRC32 = crc32.ChecksumIEEE(rawROMBytes)
 	romData.MD5 = md5.Sum(rawROMBytes)
 	romData.SHA1 = sha1.Sum(rawROMBytes)
 	romData.SHA256 = sha256.Sum256(rawROMBytes)
+	romData.Size = uint64(len(rawROMBytes))
 	romData.ROMData = rawROMBytes
 
-	if fileSize > 15 {
-		romData.Size = fileSize - 16
-	} else {
-		romData.Size = fileSize
+	if preserveTrainer {
+		romData.TrainerData = rawTrainerBytes
+	}
+
+	if fileSize < 16 {
 		return romData, &NESROMError{text: "File too small to be a headered NES ROM."}
 	}
 
@@ -98,155 +118,261 @@ func DecodeNESROM(inputFile []byte) (*NESROM, error) {
 	}
 
 	if (inputFile[7]&NES_20_AND_MASK) != NES_20_AND_MASK || (inputFile[7]|NES_20_OR_MASK) != NES_20_OR_MASK {
-		return romData, &NESROMError{text: "Not an NES 2.0 ROM."}
+		if !enableInes {
+			return romData, &NESROMError{text: "Not an NES 2.0 ROM."}
+		} else {
+			headerVersion = 1
+		}
 	}
 
-	headerData := &NESHeader{}
+	header10Data := &NES10Header{}
+	header20Data := &NES20Header{}
 
-	PRGROMBytes := make([]byte, 2)
-	PRGROMBytes[0] = inputFile[4]
-	PRGROMBytes[1] = inputFile[9] & 0b00001111
-	headerData.PRGROMSize = binary.LittleEndian.Uint16(PRGROMBytes)
+	if headerVersion == 2 {
+		PRGROMBytes := make([]byte, 2)
+		PRGROMBytes[0] = inputFile[4]
+		PRGROMBytes[1] = inputFile[9] & 0b00001111
+		header20Data.PRGROMSize = binary.LittleEndian.Uint16(PRGROMBytes)
 
-	CHRROMBytes := make([]byte, 2)
-	CHRROMBytes[0] = inputFile[5]
-	CHRROMBytes[1] = (inputFile[9] & 0b11110000) >> 4
-	headerData.CHRROMSize = binary.LittleEndian.Uint16(CHRROMBytes)
+		CHRROMBytes := make([]byte, 2)
+		CHRROMBytes[0] = inputFile[5]
+		CHRROMBytes[1] = (inputFile[9] & 0b11110000) >> 4
+		header20Data.CHRROMSize = binary.LittleEndian.Uint16(CHRROMBytes)
 
-	headerData.PRGRAMSize = inputFile[10] & 0b00001111
-	headerData.PRGNVRAMSize = (inputFile[10] & 0b11110000) >> 4
-	headerData.CHRRAMSize = inputFile[11] & 0b00001111
-	headerData.CHRNVRAMSize = (inputFile[11] & 0b11110000) >> 4
+		header20Data.PRGRAMSize = inputFile[10] & 0b00001111
+		header20Data.PRGNVRAMSize = (inputFile[10] & 0b11110000) >> 4
+		header20Data.CHRRAMSize = inputFile[11] & 0b00001111
+		header20Data.CHRNVRAMSize = (inputFile[11] & 0b11110000) >> 4
 
-	headerData.MirroringType = (inputFile[6] & 0b00000001) == 0b00000001
-	headerData.Battery = (inputFile[6] & 0b00000010) == 0b00000010
-	headerData.Trainer = (inputFile[6] & 0b00000100) == 0b00000100
-	headerData.FourScreen = (inputFile[6] & 0b00001000) == 0b00001000
-	headerData.ConsoleType = inputFile[7] & 0b00000011
+		header20Data.MirroringType = (inputFile[6] & 0b00000001) == 0b00000001
+		header20Data.Battery = (inputFile[6] & 0b00000010) == 0b00000010
 
-	MapperBytes := make([]byte, 2)
-	MapperBytes[0] = ((inputFile[6] & 0b11110000) >> 4) | (inputFile[7] & 0b11110000)
-	MapperBytes[1] = inputFile[8] & 0b00001111
+		if !preserveTrainer {
+			header20Data.Trainer = false
+		} else {
+			header20Data.Trainer = (inputFile[6] & 0b00000100) == 0b00000100
+		}
 
-	headerData.Mapper = binary.LittleEndian.Uint16(MapperBytes)
-	headerData.SubMapper = (inputFile[8] & 0b11110000) >> 4
-	headerData.CPUPPUTiming = inputFile[12] & 0b00000011
+		header20Data.FourScreen = (inputFile[6] & 0b00001000) == 0b00001000
+		header20Data.ConsoleType = inputFile[7] & 0b00000011
 
-	if headerData.ConsoleType == 0 {
-		headerData.VsHardwareType = 0
-		headerData.VsPPUType = 0
-		headerData.ExtendedConsoleType = 0
-	} else if headerData.ConsoleType == 1 {
-		headerData.VsHardwareType = (inputFile[13] & 0b11110000) >> 4
-		headerData.VsPPUType = inputFile[13] & 0b00001111
-		headerData.ExtendedConsoleType = 0
-	} else if headerData.ConsoleType == 3 {
-		headerData.VsHardwareType = 0
-		headerData.VsPPUType = 0
-		headerData.ExtendedConsoleType = inputFile[13] & 0b00001111
-	} else {
-		headerData.VsHardwareType = 0
-		headerData.VsPPUType = 0
-		headerData.ExtendedConsoleType = 0
+		MapperBytes := make([]byte, 2)
+		MapperBytes[0] = ((inputFile[6] & 0b11110000) >> 4) | (inputFile[7] & 0b11110000)
+		MapperBytes[1] = inputFile[8] & 0b00001111
+
+		header20Data.Mapper = binary.LittleEndian.Uint16(MapperBytes)
+		header20Data.SubMapper = (inputFile[8] & 0b11110000) >> 4
+		header20Data.CPUPPUTiming = inputFile[12] & 0b00000011
+
+		if header20Data.ConsoleType == 0 {
+			header20Data.VsHardwareType = 0
+			header20Data.VsPPUType = 0
+			header20Data.ExtendedConsoleType = 0
+		} else if header20Data.ConsoleType == 1 {
+			header20Data.VsHardwareType = (inputFile[13] & 0b11110000) >> 4
+			header20Data.VsPPUType = inputFile[13] & 0b00001111
+			header20Data.ExtendedConsoleType = 0
+		} else if header20Data.ConsoleType == 3 {
+			header20Data.VsHardwareType = 0
+			header20Data.VsPPUType = 0
+			header20Data.ExtendedConsoleType = inputFile[13] & 0b00001111
+		} else {
+			header20Data.VsHardwareType = 0
+			header20Data.VsPPUType = 0
+			header20Data.ExtendedConsoleType = 0
+		}
+
+		header20Data.MiscROMs = inputFile[14] & 0b00000011
+		header20Data.DefaultExpansion = inputFile[15] & 0b00111111
+
+		romData.Header20 = header20Data
+	} else if headerVersion == 1 {
+		header10Data.PRGROMSize = inputFile[4]
+		header10Data.CHRROMSize = inputFile[5]
+		header10Data.MirroringType = (inputFile[6] & 0b00000001) == 0b00000001
+		header10Data.Battery = (inputFile[6] & 0b00000010) == 0b00000010
+
+		if !preserveTrainer {
+			header10Data.Trainer = false
+		} else {
+			header10Data.Trainer = (inputFile[6] & 0b00000100) == 0b00000100
+		}
+
+		header10Data.FourScreen = (inputFile[6] & 0b00001000) == 0b00001000
+		header10Data.Mapper = ((inputFile[6] & 0b11110000) >> 4) | (inputFile[7] & 0b11110000)
+		header10Data.VsUnisystem = (inputFile[7] & 0b00000001) == 0b00000001
+		header10Data.PRGRAMSize = inputFile[8]
+		header10Data.TVSystem = (inputFile[9] & 0b00000001) == 0b00000001
+
+		romData.Header10 = header10Data
 	}
-
-	headerData.MiscROMs = inputFile[14] & 0b00000011
-	headerData.DefaultExpansion = inputFile[15] & 0b00111111
-
-	romData.Header = headerData
 
 	return romData, nil
 }
 
-func EncodeNESROM(romModel *NESROM) ([]byte, error) {
+func EncodeNESROM(romModel *NESROM, enableInes bool, preserveTrainer bool) ([]byte, error) {
+	headerVersion := 2
+
+	if romModel.Header20 == nil {
+		if romModel.Header10 == nil || !enableInes {
+			return nil, &NESROMError{"Unable to find valid header on ROM model."}
+		} else {
+			headerVersion = 1
+		}
+	}
+
 	headerBytes := make([]byte, 16)
 	for index, _ := range NES_HEADER_MAGIC {
 		headerBytes[index] = NES_HEADER_MAGIC[index]
 	}
 
-	PRGROMBytes := make([]byte, 2)
-	binary.LittleEndian.PutUint16(PRGROMBytes, romModel.Header.PRGROMSize)
-	headerBytes[4] = PRGROMBytes[0]
+	if headerVersion == 2 {
+		PRGROMBytes := make([]byte, 2)
+		binary.LittleEndian.PutUint16(PRGROMBytes, romModel.Header20.PRGROMSize)
+		headerBytes[4] = PRGROMBytes[0]
 
-	CHRROMBytes := make([]byte, 2)
-	binary.LittleEndian.PutUint16(CHRROMBytes, romModel.Header.CHRROMSize)
-	headerBytes[5] = CHRROMBytes[0]
+		CHRROMBytes := make([]byte, 2)
+		binary.LittleEndian.PutUint16(CHRROMBytes, romModel.Header20.CHRROMSize)
+		headerBytes[5] = CHRROMBytes[0]
 
-	MapperBytes := make([]byte, 2)
-	binary.LittleEndian.PutUint16(MapperBytes, romModel.Header.Mapper)
+		MapperBytes := make([]byte, 2)
+		binary.LittleEndian.PutUint16(MapperBytes, romModel.Header20.Mapper)
 
-	var Flag6Byte byte = 0b00000000
-	if romModel.Header.MirroringType {
-		Flag6Byte = Flag6Byte | 0b00000001
+		var Flag6Byte byte = 0b00000000
+		if romModel.Header20.MirroringType {
+			Flag6Byte = Flag6Byte | 0b00000001
+		}
+
+		if romModel.Header20.Battery {
+			Flag6Byte = Flag6Byte | 0b00000010
+		}
+
+		if romModel.Header20.Trainer {
+			Flag6Byte = Flag6Byte | 0b00000100
+		}
+
+		if romModel.Header20.FourScreen {
+			Flag6Byte = Flag6Byte | 0b00001000
+		}
+
+		Flag6Byte = Flag6Byte | ((MapperBytes[0] & 0b00001111) << 4)
+
+		headerBytes[6] = Flag6Byte
+		headerBytes[7] = (MapperBytes[0] & 0b11110000) | (romModel.Header20.ConsoleType & 0b00000011) | 0b00001000
+
+		headerBytes[8] = MapperBytes[1] & 0b00001111
+		headerBytes[8] = headerBytes[8] | ((romModel.Header20.SubMapper & 0b00001111) << 4)
+
+		headerBytes[9] = PRGROMBytes[1] & 0b00001111
+		headerBytes[9] = headerBytes[9] | ((CHRROMBytes[1] & 0b00001111) << 4)
+
+		headerBytes[10] = 0b00000000
+		if romModel.Header20.PRGRAMSize > 0 {
+			headerBytes[10] = headerBytes[10] | romModel.Header20.PRGRAMSize
+		}
+
+		if romModel.Header20.PRGNVRAMSize > 0 {
+			headerBytes[10] = headerBytes[10] | (romModel.Header20.PRGNVRAMSize << 4)
+		}
+
+		headerBytes[11] = 0b00000000
+		if romModel.Header20.CHRRAMSize > 0 {
+			headerBytes[11] = headerBytes[11] | romModel.Header20.CHRRAMSize
+		}
+
+		if romModel.Header20.CHRNVRAMSize > 0 {
+			headerBytes[11] = headerBytes[11] | (romModel.Header20.CHRNVRAMSize << 4)
+		}
+
+		headerBytes[12] = 0b00000000 | romModel.Header20.CPUPPUTiming
+		headerBytes[13] = 0b00000000
+		if romModel.Header20.ConsoleType == 1 {
+			headerBytes[13] = headerBytes[13] | ((romModel.Header20.VsHardwareType & 0b00001111) << 4)
+			headerBytes[13] = headerBytes[13] | (romModel.Header20.VsPPUType & 0b00001111)
+		} else if romModel.Header20.ConsoleType == 3 {
+			headerBytes[13] = headerBytes[13] | (romModel.Header20.ExtendedConsoleType & 0b00001111)
+		}
+
+		headerBytes[14] = 0b00000011 & romModel.Header20.MiscROMs
+		headerBytes[15] = 0b00111111 & romModel.Header20.DefaultExpansion
+	} else if headerVersion == 1 {
+		headerBytes[4] = romModel.Header10.PRGROMSize
+		headerBytes[5] = romModel.Header10.CHRROMSize
+
+		var Flag6Byte byte = 0b00000000
+		if romModel.Header10.MirroringType {
+			Flag6Byte = Flag6Byte | 0b00000001
+		}
+
+		if romModel.Header10.Battery {
+			Flag6Byte = Flag6Byte | 0b00000010
+		}
+
+		if romModel.Header10.Trainer {
+			Flag6Byte = Flag6Byte | 0b00000100
+		}
+
+		if romModel.Header10.FourScreen {
+			Flag6Byte = Flag6Byte | 0b00001000
+		}
+
+		Flag6Byte = Flag6Byte | ((romModel.Header10.Mapper & 0b00001111) << 4)
+		headerBytes[6] = Flag6Byte
+
+		var Flag7Byte byte = 0b00000000
+		if romModel.Header10.VsUnisystem {
+			Flag7Byte = Flag7Byte | 0b00000001
+		}
+
+		Flag7Byte = Flag7Byte | (romModel.Header10.Mapper & 0b11110000)
+		headerBytes[7] = Flag7Byte
+
+		headerBytes[8] = romModel.Header10.PRGRAMSize
+		if !romModel.Header10.TVSystem {
+			headerBytes[9] = 0
+		} else {
+			headerBytes[9] = 1
+		}
+
+		headerBytes[10] = 0
+		headerBytes[11] = 0
+		headerBytes[12] = 0
+		headerBytes[13] = 0
+		headerBytes[14] = 0
+		headerBytes[15] = 0
 	}
 
-	if romModel.Header.Battery {
-		Flag6Byte = Flag6Byte | 0b00000010
+	romBytes := headerBytes
+
+	if !preserveTrainer {
+		romBytes = append(romBytes, romModel.ROMData...)
+	} else {
+		romBytes = append(romBytes, romModel.TrainerData...)
+		romBytes = append(romBytes, romModel.ROMData...)
 	}
-
-	if romModel.Header.Trainer {
-		Flag6Byte = Flag6Byte | 0b00000100
-	}
-
-	if romModel.Header.FourScreen {
-		Flag6Byte = Flag6Byte | 0b00001000
-	}
-
-	Flag6Byte = Flag6Byte | ((MapperBytes[0] & 0b00001111) << 4)
-
-	headerBytes[6] = Flag6Byte
-	headerBytes[7] = (MapperBytes[0] & 0b11110000) | (romModel.Header.ConsoleType & 0b00000011) | 0b00001000
-
-	headerBytes[8] = MapperBytes[1] & 0b00001111
-	headerBytes[8] = headerBytes[8] | ((romModel.Header.SubMapper & 0b00001111) << 4)
-
-	headerBytes[9] = PRGROMBytes[1] & 0b00001111
-	headerBytes[9] = headerBytes[9] | ((CHRROMBytes[1] & 0b00001111) << 4)
-
-	headerBytes[10] = 0b00000000
-	if romModel.Header.PRGRAMSize > 0 {
-		headerBytes[10] = headerBytes[10] | romModel.Header.PRGRAMSize
-	}
-
-	if romModel.Header.PRGNVRAMSize > 0 {
-		headerBytes[10] = headerBytes[10] | (romModel.Header.PRGNVRAMSize << 4)
-	}
-
-	headerBytes[11] = 0b00000000
-	if romModel.Header.CHRRAMSize > 0 {
-		headerBytes[11] = headerBytes[11] | romModel.Header.CHRRAMSize
-	}
-
-	if romModel.Header.CHRNVRAMSize > 0 {
-		headerBytes[11] = headerBytes[11] | (romModel.Header.CHRNVRAMSize << 4)
-	}
-
-	headerBytes[12] = 0b00000000 | romModel.Header.CPUPPUTiming
-	headerBytes[13] = 0b00000000
-	if romModel.Header.ConsoleType == 1 {
-		headerBytes[13] = headerBytes[13] | ((romModel.Header.VsHardwareType & 0b00001111) << 4)
-		headerBytes[13] = headerBytes[13] | (romModel.Header.VsPPUType & 0b00001111)
-	} else if romModel.Header.ConsoleType == 3 {
-		headerBytes[13] = headerBytes[13] | (romModel.Header.ExtendedConsoleType & 0b00001111)
-	}
-
-	headerBytes[14] = 0b00000011 & romModel.Header.MiscROMs
-	headerBytes[15] = 0b00111111 & romModel.Header.DefaultExpansion
-
-	romBytes := append(headerBytes, romModel.ROMData...)
 
 	return romBytes, nil
 }
 
-func getStrippedRom(inputFile []byte) ([]byte, error) {
+func getStrippedRom(inputFile []byte) ([]byte, []byte, error) {
 	fileSize := uint64(len(inputFile))
 	if fileSize < 16 {
-		return inputFile, &NESROMError{text: "File too small to be a headered NES ROM."}
+		return inputFile, nil, &NESROMError{text: "File too small to be a headered NES ROM."}
 	}
 
 	if bytes.Compare(inputFile[0:4], []byte(NES_HEADER_MAGIC)) != 0 {
-		return inputFile, &NESROMError{text: "Unable to find NES magic."}
+		return inputFile, nil, &NESROMError{text: "Unable to find NES magic."}
 	}
 
-	return inputFile[16:fileSize], nil
+	hasTrainer := (inputFile[6] & 0b00000100) == 0b00000100
+
+	if hasTrainer && fileSize < 528 {
+		return inputFile, nil, &NESROMError{text: "Header indicates trainer data, but file too small for one."}
+	}
+
+	if !hasTrainer {
+		return inputFile[16:fileSize], nil, nil
+	} else {
+		return inputFile[528:fileSize], inputFile[16:528], nil
+	}
 }

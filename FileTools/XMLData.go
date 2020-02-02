@@ -23,22 +23,33 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"encoding/xml"
+	"os"
+	"strings"
 )
 
-type NES20XML struct {
-	XMLName xml.Name     `xml:"nes20"`
+type NESXML struct {
+	XMLName xml.Name     `xml:"nesroms"`
 	Text    string       `xml:",chardata"`
 	XMLROMs []*NESXMLROM `xml:"rom"`
 }
 
 type NESXMLROM struct {
-	Text   string `xml:",chardata"`
-	Name   string `xml:"name,attr"`
-	Size   uint64 `xml:"size,attr"`
-	Crc32  string `xml:"crc32,attr"`
-	Md5    string `xml:"md5,attr"`
-	Sha1   string `xml:"sha1,attr"`
-	Sha256 string `xml:"sha256,attr"`
+	Text         string `xml:",chardata"`
+	Name         string `xml:"name,attr"`
+	Size         uint64 `xml:"size,attr"`
+	RelativePath string `xml:"relativePath,attr"`
+	Crc32        string `xml:"crc32,attr"`
+	Md5          string `xml:"md5,attr"`
+	Sha1         string `xml:"sha1,attr"`
+	Sha256       string `xml:"sha256,attr"`
+	TrainerData  struct {
+		Text string `xml:",chardata"`
+	} `xml:"trainerData"`
+	Header20 *NES20XMLFields `xml:"nes20"`
+	Header10 *NES10XMLFields `xml:"ines"`
+}
+
+type NES20XMLFields struct {
 	Prgrom struct {
 		Text string `xml:",chardata"`
 		Size uint16 `xml:"size,attr"`
@@ -117,11 +128,57 @@ type NESXMLROM struct {
 	} `xml:"defaultExpansion"`
 }
 
-func MarshalXMLFromROMMap(nesRoms map[[32]byte]*NES20Tool.NESROM) (string, error) {
-	romXml := &NES20XML{}
+type NES10XMLFields struct {
+	Prgrom struct {
+		Text string `xml:",chardata"`
+		Size uint8  `xml:"size,attr"`
+	} `xml:"prgrom"`
+	Chrrom struct {
+		Text string `xml:",chardata"`
+		Size uint8  `xml:"size,attr"`
+	} `xml:"chrrom"`
+	MirroringType struct {
+		Text  string `xml:",chardata"`
+		Value bool   `xml:"value,attr"`
+	} `xml:"mirroringType"`
+	Battery struct {
+		Text  string `xml:",chardata"`
+		Value bool   `xml:"value,attr"`
+	} `xml:"battery"`
+	Trainer struct {
+		Text  string `xml:",chardata"`
+		Value bool   `xml:"value,attr"`
+	} `xml:"trainer"`
+	FourScreen struct {
+		Text  string `xml:",chardata"`
+		Value bool   `xml:"value,attr"`
+	} `xml:"fourScreen"`
+	Mapper struct {
+		Text  string `xml:",chardata"`
+		Value uint8  `xml:"value,attr"`
+	} `xml:"mapper"`
+	VsUnisystem struct {
+		Text  string `xml:",chardata"`
+		Value bool   `xml:"value,attr"`
+	} `xml:"vsUnisystem"`
+	Prgram struct {
+		Text string `xml:",chardata"`
+		Size uint8  `xml:"size,attr"`
+	} `xml:"prgram"`
+	TvSystem struct {
+		Text  string `xml:",chardata"`
+		Value bool   `xml:"size,attr"`
+	} `xml:"tvSystem"`
+}
+
+func MarshalXMLFromROMMap(nesRoms map[[32]byte]*NES20Tool.NESROM, enableInes bool, preserveTrainer bool, enableOrganization bool) (string, error) {
+	romXml := &NESXML{}
 	for key, _ := range nesRoms {
-		if nesRoms[key].Header != nil {
+		if nesRoms[key].Header20 != nil {
 			tempXmlRom := &NESXMLROM{}
+			tempXmlHeader20 := &NES20XMLFields{}
+			tempXmlRom.Header20 = tempXmlHeader20
+
 			tempXmlRom.Name = nesRoms[key].Name
 			tempXmlRom.Size = nesRoms[key].Size
 
@@ -132,25 +189,78 @@ func MarshalXMLFromROMMap(nesRoms map[[32]byte]*NES20Tool.NESROM) (string, error
 			tempXmlRom.Md5 = hex.EncodeToString(nesRoms[key].MD5[:])
 			tempXmlRom.Sha1 = hex.EncodeToString(nesRoms[key].SHA1[:])
 			tempXmlRom.Sha256 = hex.EncodeToString(nesRoms[key].SHA256[:])
-			tempXmlRom.Prgrom.Size = nesRoms[key].Header.PRGROMSize
-			tempXmlRom.Chrrom.Size = nesRoms[key].Header.CHRROMSize
-			tempXmlRom.Prgram.Size = nesRoms[key].Header.PRGRAMSize
-			tempXmlRom.Prgnvram.Size = nesRoms[key].Header.PRGNVRAMSize
-			tempXmlRom.Chrram.Size = nesRoms[key].Header.CHRRAMSize
-			tempXmlRom.Chrnvram.Size = nesRoms[key].Header.CHRNVRAMSize
-			tempXmlRom.MirroringType.Value = nesRoms[key].Header.MirroringType
-			tempXmlRom.Battery.Value = nesRoms[key].Header.Battery
-			tempXmlRom.Trainer.Value = nesRoms[key].Header.Trainer
-			tempXmlRom.FourScreen.Value = nesRoms[key].Header.FourScreen
-			tempXmlRom.ConsoleType.Value = nesRoms[key].Header.ConsoleType
-			tempXmlRom.Mapper.Value = nesRoms[key].Header.Mapper
-			tempXmlRom.SubMapper.Value = nesRoms[key].Header.SubMapper
-			tempXmlRom.CpuPpuTiming.Value = nesRoms[key].Header.CPUPPUTiming
-			tempXmlRom.VsHardwareType.Value = nesRoms[key].Header.VsHardwareType
-			tempXmlRom.VsPpuType.Value = nesRoms[key].Header.VsPPUType
-			tempXmlRom.ExtendedConsoleType.Value = nesRoms[key].Header.ExtendedConsoleType
-			tempXmlRom.MiscRoms.Value = nesRoms[key].Header.MiscROMs
-			tempXmlRom.DefaultExpansion.Value = nesRoms[key].Header.DefaultExpansion
+
+			if enableOrganization {
+				tempRelativePath := nesRoms[key].RelativePath
+				tempRelativePath = strings.Replace(tempRelativePath, string(os.PathSeparator), "/", -1)
+				tempXmlRom.RelativePath = tempRelativePath
+			}
+
+			if preserveTrainer && nesRoms[key].TrainerData != nil {
+				tempXmlRom.TrainerData.Text = hex.EncodeToString(nesRoms[key].TrainerData)
+			}
+
+			tempXmlRom.Header20.Prgrom.Size = nesRoms[key].Header20.PRGROMSize
+			tempXmlRom.Header20.Chrrom.Size = nesRoms[key].Header20.CHRROMSize
+			tempXmlRom.Header20.Prgram.Size = nesRoms[key].Header20.PRGRAMSize
+			tempXmlRom.Header20.Prgnvram.Size = nesRoms[key].Header20.PRGNVRAMSize
+			tempXmlRom.Header20.Chrram.Size = nesRoms[key].Header20.CHRRAMSize
+			tempXmlRom.Header20.Chrnvram.Size = nesRoms[key].Header20.CHRNVRAMSize
+			tempXmlRom.Header20.MirroringType.Value = nesRoms[key].Header20.MirroringType
+			tempXmlRom.Header20.Battery.Value = nesRoms[key].Header20.Battery
+			tempXmlRom.Header20.Trainer.Value = nesRoms[key].Header20.Trainer
+			tempXmlRom.Header20.FourScreen.Value = nesRoms[key].Header20.FourScreen
+			tempXmlRom.Header20.ConsoleType.Value = nesRoms[key].Header20.ConsoleType
+			tempXmlRom.Header20.Mapper.Value = nesRoms[key].Header20.Mapper
+			tempXmlRom.Header20.SubMapper.Value = nesRoms[key].Header20.SubMapper
+			tempXmlRom.Header20.CpuPpuTiming.Value = nesRoms[key].Header20.CPUPPUTiming
+			tempXmlRom.Header20.VsHardwareType.Value = nesRoms[key].Header20.VsHardwareType
+			tempXmlRom.Header20.VsPpuType.Value = nesRoms[key].Header20.VsPPUType
+			tempXmlRom.Header20.ExtendedConsoleType.Value = nesRoms[key].Header20.ExtendedConsoleType
+			tempXmlRom.Header20.MiscRoms.Value = nesRoms[key].Header20.MiscROMs
+			tempXmlRom.Header20.DefaultExpansion.Value = nesRoms[key].Header20.DefaultExpansion
+
+			romXml.XMLROMs = append(romXml.XMLROMs, tempXmlRom)
+		} else if enableInes && nesRoms[key].Header10 != nil {
+			tempXmlRom := &NESXMLROM{}
+			tempXmlHeader10 := &NES10XMLFields{}
+			tempXmlRom.Header10 = tempXmlHeader10
+
+			tempXmlRom.Name = nesRoms[key].Name
+			tempXmlRom.Size = nesRoms[key].Size
+
+			crc32Bytes := make([]byte, 4)
+			binary.BigEndian.PutUint32(crc32Bytes, nesRoms[key].CRC32)
+			tempXmlRom.Crc32 = hex.EncodeToString(crc32Bytes)
+
+			tempXmlRom.Md5 = hex.EncodeToString(nesRoms[key].MD5[:])
+			tempXmlRom.Sha1 = hex.EncodeToString(nesRoms[key].SHA1[:])
+			tempXmlRom.Sha256 = hex.EncodeToString(nesRoms[key].SHA256[:])
+
+			if enableOrganization {
+				tempRelativePath := nesRoms[key].RelativePath
+				tempRelativePath = strings.Replace(tempRelativePath, string(os.PathSeparator), "/", -1)
+				tempXmlRom.RelativePath = tempRelativePath
+			}
+
+			if preserveTrainer && nesRoms[key].TrainerData != nil {
+				tempXmlRom.TrainerData.Text = hex.EncodeToString(nesRoms[key].TrainerData)
+			}
+
+			tempNesRom := nesRoms[key]
+			if tempNesRom == nil {
+			}
+
+			tempXmlRom.Header10.Prgrom.Size = nesRoms[key].Header10.PRGROMSize
+			tempXmlRom.Header10.Chrrom.Size = nesRoms[key].Header10.CHRROMSize
+			tempXmlRom.Header10.MirroringType.Value = nesRoms[key].Header10.MirroringType
+			tempXmlRom.Header10.Battery.Value = nesRoms[key].Header10.Battery
+			tempXmlRom.Header10.Trainer.Value = nesRoms[key].Header10.Trainer
+			tempXmlRom.Header10.FourScreen.Value = nesRoms[key].Header10.FourScreen
+			tempXmlRom.Header10.Mapper.Value = nesRoms[key].Header10.Mapper
+			tempXmlRom.Header10.VsUnisystem.Value = nesRoms[key].Header10.VsUnisystem
+			tempXmlRom.Header10.Prgram.Size = nesRoms[key].Header10.PRGRAMSize
+			tempXmlRom.Header10.TvSystem.Value = nesRoms[key].Header10.TVSystem
 
 			romXml.XMLROMs = append(romXml.XMLROMs, tempXmlRom)
 		}
@@ -164,8 +274,8 @@ func MarshalXMLFromROMMap(nesRoms map[[32]byte]*NES20Tool.NESROM) (string, error
 	return string(xmlBytes), nil
 }
 
-func UnmarshalXMLToROMMap(xmlPayload string) (map[[32]byte]*NES20Tool.NESROM, error) {
-	xmlStruct := &NES20XML{}
+func UnmarshalXMLToROMMap(xmlPayload string, enableInes bool, preserveTrainer bool, enableOrganization bool) (map[[32]byte]*NES20Tool.NESROM, error) {
+	xmlStruct := &NESXML{}
 	err := xml.Unmarshal([]byte(xmlPayload), xmlStruct)
 	if err != nil {
 		return nil, err
@@ -175,8 +285,6 @@ func UnmarshalXMLToROMMap(xmlPayload string) (map[[32]byte]*NES20Tool.NESROM, er
 
 	for index, _ := range xmlStruct.XMLROMs {
 		tempRom := &NES20Tool.NESROM{}
-		tempRomHeader := &NES20Tool.NESHeader{}
-		tempRom.Header = tempRomHeader
 
 		crc32Bytes, err := hex.DecodeString(xmlStruct.XMLROMs[index].Crc32)
 		if err == nil {
@@ -200,25 +308,58 @@ func UnmarshalXMLToROMMap(xmlPayload string) (map[[32]byte]*NES20Tool.NESROM, er
 
 		tempRom.Name = xmlStruct.XMLROMs[index].Name
 		tempRom.Size = xmlStruct.XMLROMs[index].Size
-		tempRom.Header.PRGROMSize = xmlStruct.XMLROMs[index].Prgrom.Size
-		tempRom.Header.CHRROMSize = xmlStruct.XMLROMs[index].Chrrom.Size
-		tempRom.Header.PRGRAMSize = xmlStruct.XMLROMs[index].Prgram.Size
-		tempRom.Header.PRGNVRAMSize = xmlStruct.XMLROMs[index].Prgnvram.Size
-		tempRom.Header.CHRRAMSize = xmlStruct.XMLROMs[index].Chrram.Size
-		tempRom.Header.CHRNVRAMSize = xmlStruct.XMLROMs[index].Chrnvram.Size
-		tempRom.Header.MirroringType = xmlStruct.XMLROMs[index].MirroringType.Value
-		tempRom.Header.Battery = xmlStruct.XMLROMs[index].Battery.Value
-		tempRom.Header.Trainer = xmlStruct.XMLROMs[index].Trainer.Value
-		tempRom.Header.FourScreen = xmlStruct.XMLROMs[index].FourScreen.Value
-		tempRom.Header.ConsoleType = xmlStruct.XMLROMs[index].ConsoleType.Value
-		tempRom.Header.Mapper = xmlStruct.XMLROMs[index].Mapper.Value
-		tempRom.Header.SubMapper = xmlStruct.XMLROMs[index].SubMapper.Value
-		tempRom.Header.CPUPPUTiming = xmlStruct.XMLROMs[index].CpuPpuTiming.Value
-		tempRom.Header.VsHardwareType = xmlStruct.XMLROMs[index].VsHardwareType.Value
-		tempRom.Header.VsPPUType = xmlStruct.XMLROMs[index].VsPpuType.Value
-		tempRom.Header.ExtendedConsoleType = xmlStruct.XMLROMs[index].ExtendedConsoleType.Value
-		tempRom.Header.MiscROMs = xmlStruct.XMLROMs[index].MiscRoms.Value
-		tempRom.Header.DefaultExpansion = xmlStruct.XMLROMs[index].DefaultExpansion.Value
+
+		if enableOrganization {
+			tempRelativePath := xmlStruct.XMLROMs[index].RelativePath
+			tempRelativePath = strings.Replace(tempRelativePath, "/", string(os.PathSeparator), -1)
+			tempRom.RelativePath = tempRelativePath
+		}
+
+		if preserveTrainer && xmlStruct.XMLROMs[index].TrainerData.Text != "" {
+			trainerDataBytes, err := hex.DecodeString(xmlStruct.XMLROMs[index].TrainerData.Text)
+			if err == nil {
+				tempRom.TrainerData = trainerDataBytes
+			}
+		}
+
+		if xmlStruct.XMLROMs[index].Header20 != nil {
+			tempRomHeader20 := &NES20Tool.NES20Header{}
+			tempRom.Header20 = tempRomHeader20
+
+			tempRom.Header20.PRGROMSize = xmlStruct.XMLROMs[index].Header20.Prgrom.Size
+			tempRom.Header20.CHRROMSize = xmlStruct.XMLROMs[index].Header20.Chrrom.Size
+			tempRom.Header20.PRGRAMSize = xmlStruct.XMLROMs[index].Header20.Prgram.Size
+			tempRom.Header20.PRGNVRAMSize = xmlStruct.XMLROMs[index].Header20.Prgnvram.Size
+			tempRom.Header20.CHRRAMSize = xmlStruct.XMLROMs[index].Header20.Chrram.Size
+			tempRom.Header20.CHRNVRAMSize = xmlStruct.XMLROMs[index].Header20.Chrnvram.Size
+			tempRom.Header20.MirroringType = xmlStruct.XMLROMs[index].Header20.MirroringType.Value
+			tempRom.Header20.Battery = xmlStruct.XMLROMs[index].Header20.Battery.Value
+			tempRom.Header20.Trainer = xmlStruct.XMLROMs[index].Header20.Trainer.Value
+			tempRom.Header20.FourScreen = xmlStruct.XMLROMs[index].Header20.FourScreen.Value
+			tempRom.Header20.ConsoleType = xmlStruct.XMLROMs[index].Header20.ConsoleType.Value
+			tempRom.Header20.Mapper = xmlStruct.XMLROMs[index].Header20.Mapper.Value
+			tempRom.Header20.SubMapper = xmlStruct.XMLROMs[index].Header20.SubMapper.Value
+			tempRom.Header20.CPUPPUTiming = xmlStruct.XMLROMs[index].Header20.CpuPpuTiming.Value
+			tempRom.Header20.VsHardwareType = xmlStruct.XMLROMs[index].Header20.VsHardwareType.Value
+			tempRom.Header20.VsPPUType = xmlStruct.XMLROMs[index].Header20.VsPpuType.Value
+			tempRom.Header20.ExtendedConsoleType = xmlStruct.XMLROMs[index].Header20.ExtendedConsoleType.Value
+			tempRom.Header20.MiscROMs = xmlStruct.XMLROMs[index].Header20.MiscRoms.Value
+			tempRom.Header20.DefaultExpansion = xmlStruct.XMLROMs[index].Header20.DefaultExpansion.Value
+		} else if enableInes && xmlStruct.XMLROMs[index].Header10 != nil {
+			tempRomHeader10 := &NES20Tool.NES10Header{}
+			tempRom.Header10 = tempRomHeader10
+
+			tempRom.Header10.PRGROMSize = xmlStruct.XMLROMs[index].Header10.Prgrom.Size
+			tempRom.Header10.CHRROMSize = xmlStruct.XMLROMs[index].Header10.Chrrom.Size
+			tempRom.Header10.MirroringType = xmlStruct.XMLROMs[index].Header10.MirroringType.Value
+			tempRom.Header10.Battery = xmlStruct.XMLROMs[index].Header10.Battery.Value
+			tempRom.Header10.Trainer = xmlStruct.XMLROMs[index].Header10.Trainer.Value
+			tempRom.Header10.FourScreen = xmlStruct.XMLROMs[index].Header10.FourScreen.Value
+			tempRom.Header10.Mapper = xmlStruct.XMLROMs[index].Header10.Mapper.Value
+			tempRom.Header10.VsUnisystem = xmlStruct.XMLROMs[index].Header10.VsUnisystem.Value
+			tempRom.Header10.PRGRAMSize = xmlStruct.XMLROMs[index].Header10.Prgram.Size
+			tempRom.Header10.TVSystem = xmlStruct.XMLROMs[index].Header10.TvSystem.Value
+		}
 
 		romMap[tempRom.SHA256] = tempRom
 	}
