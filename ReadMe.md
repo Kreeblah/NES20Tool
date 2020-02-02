@@ -15,7 +15,7 @@ I don't presently intend to make formal releases until this situation settles ou
 Known Issues and Potential Issues
 ---------------------------------
 
-Some NES 2.0 header sets assign the value of "2" to byte 13 of the header for _some_ ROMs identified in byte 7 as PlayChoice 10 ROMs (the lower two bits as "2" in byte 7), but zero for this byte in others.  The reason for this is unknown, but the specification at https://wiki.nesdev.com/w/index.php/NES_2.0 implies that these ROMs should be assigned a value of "0" in byte 13 when those bits in byte 7 are not 1 or 3, so that's what this tool does in those circumstances.  Because of this, this tool is unable to properly model the entirety of those sets.
+Some NES 2.0 header sets assign the value of "2" to byte 13 of the header for _some_ ROMs identified in byte 7 as PlayChoice 10 ROMs (the lower two bits as "2" in byte 7), but zero for this byte in others.  The reason for this is unknown, but the specification at https://wiki.nesdev.com/w/index.php/NES_2.0 implies that these ROMs should be assigned a value of "0" in byte 13 when those bits in byte 7 are not 1 or 3, so that's what this tool does in those circumstances.  Because of this, this tool is unable to model the entirety of those sets, and will result in differing data for headers for those ROMs (the value of byte 13 on those ROMs will be 0) if read to an XML file and re-applied to the same set.
 
 Usage
 -----
