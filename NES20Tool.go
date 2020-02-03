@@ -98,7 +98,11 @@ func main() {
 						if *romBasePath == "" {
 							println("Writing NES 2.0 ROM: " + rawRoms[key].Filename)
 						} else {
-							println("Writing NES 2.0 ROM: " + *romBasePath + string(os.PathSeparator) + romData[rawRoms[key].SHA256].RelativePath)
+							tempBasePath := *romBasePath
+							if tempBasePath[len(tempBasePath) - 1] != os.PathSeparator {
+								tempBasePath = tempBasePath + string(os.PathSeparator)
+							}
+							println("Writing NES 2.0 ROM: " + tempBasePath + romData[rawRoms[key].SHA256].RelativePath)
 							rawRoms[key].RelativePath = romData[rawRoms[key].SHA256].RelativePath
 						}
 
@@ -116,7 +120,11 @@ func main() {
 						if *romBasePath == "" {
 							println("Writing iNES ROM: " + rawRoms[key].Filename)
 						} else {
-							println("Writing iNES ROM: " + *romBasePath + string(os.PathSeparator) + romData[rawRoms[key].SHA256].RelativePath)
+							tempBasePath := *romBasePath
+							if tempBasePath[len(tempBasePath) - 1] != os.PathSeparator {
+								tempBasePath = tempBasePath + string(os.PathSeparator)
+							}
+							println("Writing iNES ROM: " + tempBasePath + romData[rawRoms[key].SHA256].RelativePath)
 							rawRoms[key].RelativePath = romData[rawRoms[key].SHA256].RelativePath
 						}
 
