@@ -17,8 +17,6 @@ Known Issues and Potential Issues
 
 Some NES 2.0 header sets assign the value of "2" to byte 13 of the header for _some_ ROMs identified in byte 7 as PlayChoice 10 ROMs (the lower two bits as "2" in byte 7), but zero for this byte in others.  The reason for this is unknown, but the specification at https://wiki.nesdev.com/w/index.php/NES_2.0 implies that these ROMs should be assigned a value of "0" in byte 13 when those bits in byte 7 are not 1 or 3, so that's what this tool does in those circumstances.  Because of this, this tool is unable to model the entirety of those sets, and will result in differing data for headers for those ROMs (the value of byte 13 on those ROMs will be 0) if read to an XML file and re-applied to the same set.
 
-This tool also doesn't currently turn exponent-calculated PRG-ROM and CHR-ROM sizes (as documented at https://wiki.nesdev.com/w/index.php/NES_2.0#PRG-ROM_Area) into human-readable formats properly for the XML file, as reversing that calculation would be a huge pain.  So, for example, Vs. Gumshoe shows a PRG-ROM size of 3894 16KB blocks because the 40KB of PRG-ROM it has is not able to be represented as an integer multiple of 16KB.  So, the exponent form is used instead, with the upper four bits of the 12-bit size being set to 1.  This tool _does_, however, write data correctly when updating headers, so it's purely an issue with human readability in the XML representations.  Any value greater than or equal to 3840 in either the PRG-ROM fields or CHR-ROM fields indicates a ROM affected by this.
-
 Usage
 -----
 

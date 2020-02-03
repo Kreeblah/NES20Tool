@@ -34,25 +34,29 @@ var (
 )
 
 type NES20Header struct {
-	PRGROMSize          uint16
-	CHRROMSize          uint16
-	PRGRAMSize          uint8
-	PRGNVRAMSize        uint8
-	CHRRAMSize          uint8
-	CHRNVRAMSize        uint8
-	MirroringType       bool
-	Battery             bool
-	Trainer             bool
-	FourScreen          bool
-	ConsoleType         uint8
-	Mapper              uint16
-	SubMapper           uint8
-	CPUPPUTiming        uint8
-	VsHardwareType      uint8
-	VsPPUType           uint8
-	ExtendedConsoleType uint8
-	MiscROMs            uint8
-	DefaultExpansion    uint8
+	PRGROMSize           uint16
+	PRGROMSizeExponent   uint8
+	PRGROMSizeMultiplier uint8
+	CHRROMSize           uint16
+	CHRROMSizeExponent   uint8
+	CHRROMSizeMultiplier uint8
+	PRGRAMSize           uint8
+	PRGNVRAMSize         uint8
+	CHRRAMSize           uint8
+	CHRNVRAMSize         uint8
+	MirroringType        bool
+	Battery              bool
+	Trainer              bool
+	FourScreen           bool
+	ConsoleType          uint8
+	Mapper               uint16
+	SubMapper            uint8
+	CPUPPUTiming         uint8
+	VsHardwareType       uint8
+	VsPPUType            uint8
+	ExtendedConsoleType  uint8
+	MiscROMs             uint8
+	DefaultExpansion     uint8
 }
 
 type NES10Header struct {
@@ -129,15 +133,25 @@ func DecodeNESROM(inputFile []byte, enableInes bool, preserveTrainer bool, relat
 	header20Data := &NES20Header{}
 
 	if headerVersion == 2 {
-		PRGROMBytes := make([]byte, 2)
-		PRGROMBytes[0] = inputFile[4]
-		PRGROMBytes[1] = inputFile[9] & 0b00001111
-		header20Data.PRGROMSize = binary.LittleEndian.Uint16(PRGROMBytes)
+		if inputFile[9]&0b00001111 != 0b00001111 {
+			PRGROMBytes := make([]byte, 2)
+			PRGROMBytes[0] = inputFile[4]
+			PRGROMBytes[1] = inputFile[9] & 0b00001111
+			header20Data.PRGROMSize = binary.LittleEndian.Uint16(PRGROMBytes)
+		} else {
+			header20Data.PRGROMSizeExponent = (inputFile[4] & 0b11111100) >> 2
+			header20Data.PRGROMSizeMultiplier = inputFile[4] & 0b00000011
+		}
 
-		CHRROMBytes := make([]byte, 2)
-		CHRROMBytes[0] = inputFile[5]
-		CHRROMBytes[1] = (inputFile[9] & 0b11110000) >> 4
-		header20Data.CHRROMSize = binary.LittleEndian.Uint16(CHRROMBytes)
+		if inputFile[9]&0b11110000 != 0b11110000 {
+			CHRROMBytes := make([]byte, 2)
+			CHRROMBytes[0] = inputFile[5]
+			CHRROMBytes[1] = (inputFile[9] & 0b11110000) >> 4
+			header20Data.CHRROMSize = binary.LittleEndian.Uint16(CHRROMBytes)
+		} else {
+			header20Data.CHRROMSizeExponent = (inputFile[5] & 0b11111100) >> 2
+			header20Data.CHRROMSizeMultiplier = inputFile[5] & 0b00000011
+		}
 
 		header20Data.PRGRAMSize = inputFile[10] & 0b00001111
 		header20Data.PRGNVRAMSize = (inputFile[10] & 0b11110000) >> 4
@@ -227,13 +241,26 @@ func EncodeNESROM(romModel *NESROM, enableInes bool, preserveTrainer bool) ([]by
 	}
 
 	if headerVersion == 2 {
-		PRGROMBytes := make([]byte, 2)
-		binary.LittleEndian.PutUint16(PRGROMBytes, romModel.Header20.PRGROMSize)
-		headerBytes[4] = PRGROMBytes[0]
+		headerBytes[9] = 0b00000000
+		if romModel.Header20.PRGROMSize > 0 {
+			PRGROMBytes := make([]byte, 2)
+			binary.LittleEndian.PutUint16(PRGROMBytes, romModel.Header20.PRGROMSize)
+			headerBytes[4] = PRGROMBytes[0]
+			headerBytes[9] = headerBytes[9] | (PRGROMBytes[1] & 0b00001111)
+		} else {
+			headerBytes[4] = (romModel.Header20.PRGROMSizeExponent << 2) | romModel.Header20.PRGROMSizeMultiplier
+			headerBytes[9] = headerBytes[9] | 0b00001111
+		}
 
-		CHRROMBytes := make([]byte, 2)
-		binary.LittleEndian.PutUint16(CHRROMBytes, romModel.Header20.CHRROMSize)
-		headerBytes[5] = CHRROMBytes[0]
+		if romModel.Header20.CHRROMSize > 0 {
+			CHRROMBytes := make([]byte, 2)
+			binary.LittleEndian.PutUint16(CHRROMBytes, romModel.Header20.CHRROMSize)
+			headerBytes[5] = CHRROMBytes[0]
+			headerBytes[9] = headerBytes[9] | ((CHRROMBytes[1] & 0b00001111) << 4)
+		} else {
+			headerBytes[5] = (romModel.Header20.CHRROMSizeExponent << 2) | romModel.Header20.CHRROMSizeMultiplier
+			headerBytes[9] = headerBytes[9] | 0b11110000
+		}
 
 		MapperBytes := make([]byte, 2)
 		binary.LittleEndian.PutUint16(MapperBytes, romModel.Header20.Mapper)
@@ -262,9 +289,6 @@ func EncodeNESROM(romModel *NESROM, enableInes bool, preserveTrainer bool) ([]by
 
 		headerBytes[8] = MapperBytes[1] & 0b00001111
 		headerBytes[8] = headerBytes[8] | ((romModel.Header20.SubMapper & 0b00001111) << 4)
-
-		headerBytes[9] = PRGROMBytes[1] & 0b00001111
-		headerBytes[9] = headerBytes[9] | ((CHRROMBytes[1] & 0b00001111) << 4)
 
 		headerBytes[10] = 0b00000000
 		if romModel.Header20.PRGRAMSize > 0 {

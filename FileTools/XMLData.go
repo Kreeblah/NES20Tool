@@ -51,12 +51,16 @@ type NESXMLROM struct {
 
 type NES20XMLFields struct {
 	Prgrom struct {
-		Text string `xml:",chardata"`
-		Size uint16 `xml:"size,attr"`
+		Text           string `xml:",chardata"`
+		Size           uint16 `xml:"size,attr"`
+		SizeExponent   uint8  `xml:"sizeExponent,attr"`
+		SizeMultiplier uint8  `xml:"sizeMultiplier,attr"`
 	} `xml:"prgrom"`
 	Chrrom struct {
-		Text string `xml:",chardata"`
-		Size uint16 `xml:"size,attr"`
+		Text           string `xml:",chardata"`
+		Size           uint16 `xml:"size,attr"`
+		SizeExponent   uint8  `xml:"sizeExponent,attr"`
+		SizeMultiplier uint8  `xml:"sizeMultiplier,attr"`
 	} `xml:"chrrom"`
 	Prgram struct {
 		Text string `xml:",chardata"`
@@ -192,6 +196,9 @@ func MarshalXMLFromROMMap(nesRoms map[[32]byte]*NES20Tool.NESROM, enableInes boo
 
 			if enableOrganization {
 				tempRelativePath := nesRoms[key].RelativePath
+				if tempRelativePath[0] == os.PathSeparator {
+					tempRelativePath = tempRelativePath[1:]
+				}
 				tempRelativePath = strings.Replace(tempRelativePath, string(os.PathSeparator), "/", -1)
 				tempXmlRom.RelativePath = tempRelativePath
 			}
@@ -200,8 +207,20 @@ func MarshalXMLFromROMMap(nesRoms map[[32]byte]*NES20Tool.NESROM, enableInes boo
 				tempXmlRom.TrainerData.Text = hex.EncodeToString(nesRoms[key].TrainerData)
 			}
 
-			tempXmlRom.Header20.Prgrom.Size = nesRoms[key].Header20.PRGROMSize
-			tempXmlRom.Header20.Chrrom.Size = nesRoms[key].Header20.CHRROMSize
+			if nesRoms[key].Header20.PRGROMSize > 0 {
+				tempXmlRom.Header20.Prgrom.Size = nesRoms[key].Header20.PRGROMSize
+			} else {
+				tempXmlRom.Header20.Prgrom.SizeExponent = nesRoms[key].Header20.PRGROMSizeExponent
+				tempXmlRom.Header20.Prgrom.SizeMultiplier = nesRoms[key].Header20.PRGROMSizeMultiplier
+			}
+
+			if nesRoms[key].Header20.CHRROMSize > 0 {
+				tempXmlRom.Header20.Chrrom.Size = nesRoms[key].Header20.CHRROMSize
+			} else {
+				tempXmlRom.Header20.Chrrom.SizeExponent = nesRoms[key].Header20.CHRROMSizeExponent
+				tempXmlRom.Header20.Chrrom.SizeMultiplier = nesRoms[key].Header20.CHRROMSizeMultiplier
+			}
+
 			tempXmlRom.Header20.Prgram.Size = nesRoms[key].Header20.PRGRAMSize
 			tempXmlRom.Header20.Prgnvram.Size = nesRoms[key].Header20.PRGNVRAMSize
 			tempXmlRom.Header20.Chrram.Size = nesRoms[key].Header20.CHRRAMSize
@@ -239,6 +258,9 @@ func MarshalXMLFromROMMap(nesRoms map[[32]byte]*NES20Tool.NESROM, enableInes boo
 
 			if enableOrganization {
 				tempRelativePath := nesRoms[key].RelativePath
+				if tempRelativePath[0] == os.PathSeparator {
+					tempRelativePath = tempRelativePath[1:]
+				}
 				tempRelativePath = strings.Replace(tempRelativePath, string(os.PathSeparator), "/", -1)
 				tempXmlRom.RelativePath = tempRelativePath
 			}
@@ -326,8 +348,20 @@ func UnmarshalXMLToROMMap(xmlPayload string, enableInes bool, preserveTrainer bo
 			tempRomHeader20 := &NES20Tool.NES20Header{}
 			tempRom.Header20 = tempRomHeader20
 
-			tempRom.Header20.PRGROMSize = xmlStruct.XMLROMs[index].Header20.Prgrom.Size
-			tempRom.Header20.CHRROMSize = xmlStruct.XMLROMs[index].Header20.Chrrom.Size
+			if xmlStruct.XMLROMs[index].Header20.Prgrom.Size > 0 {
+				tempRom.Header20.PRGROMSize = xmlStruct.XMLROMs[index].Header20.Prgrom.Size
+			} else {
+				tempRom.Header20.PRGROMSizeExponent = xmlStruct.XMLROMs[index].Header20.Prgrom.SizeExponent
+				tempRom.Header20.PRGROMSizeMultiplier = xmlStruct.XMLROMs[index].Header20.Prgrom.SizeMultiplier
+			}
+
+			if xmlStruct.XMLROMs[index].Header20.Chrrom.Size > 0 {
+				tempRom.Header20.CHRROMSize = xmlStruct.XMLROMs[index].Header20.Chrrom.Size
+			} else {
+				tempRom.Header20.CHRROMSizeExponent = xmlStruct.XMLROMs[index].Header20.Chrrom.SizeExponent
+				tempRom.Header20.CHRROMSizeMultiplier = xmlStruct.XMLROMs[index].Header20.Chrrom.SizeMultiplier
+			}
+
 			tempRom.Header20.PRGRAMSize = xmlStruct.XMLROMs[index].Header20.Prgram.Size
 			tempRom.Header20.PRGNVRAMSize = xmlStruct.XMLROMs[index].Header20.Prgnvram.Size
 			tempRom.Header20.CHRRAMSize = xmlStruct.XMLROMs[index].Header20.Chrram.Size

@@ -52,7 +52,10 @@ func LoadROM(fileName string, enableInes bool, preserveTrainer bool, basePath st
 
 	relativePath := ""
 	if basePath != "" {
-		relativePath = strings.TrimPrefix(fileName, basePath+string(os.PathSeparator))
+		relativePath = strings.TrimPrefix(fileName, basePath)
+		if relativePath[0] == os.PathSeparator {
+			relativePath = relativePath[1:]
+		}
 	}
 
 	decodedRom, err := NES20Tool.DecodeNESROM(byteSlice, enableInes, preserveTrainer, relativePath)
@@ -71,7 +74,6 @@ func LoadROM(fileName string, enableInes bool, preserveTrainer bool, basePath st
 }
 
 func LoadROMRecursive(basePath string, enableInes bool, preserveTrainers bool) ([]*NES20Tool.NESROM, error) {
-	//	romMap := make(map[[32]byte]*NES20Tool.NESROM)
 	romSlice := make([]*NES20Tool.NESROM, 0)
 	nesRegEx, err := regexp.Compile("^.+\\.nes$")
 	if err != nil {
@@ -146,9 +148,13 @@ func WriteROM(romModel *NES20Tool.NESROM, enableInes bool, preserveTrainer bool,
 	if destinationBasePath == "" {
 		return ioutil.WriteFile(romModel.Filename, nesRomBytes, 0644)
 	} else {
-		tempRomPath := destinationBasePath + string(os.PathSeparator) + romModel.RelativePath
+		tempRomPath := destinationBasePath
+		if tempRomPath[len(tempRomPath) - 1] != os.PathSeparator {
+			tempRomPath = tempRomPath + string(os.PathSeparator)
+		}
+		tempRomPath = tempRomPath + romModel.RelativePath
 		directoryPath := tempRomPath[0:strings.LastIndex(tempRomPath, string(os.PathSeparator))]
-		os.MkdirAll(directoryPath, os.ModeDir | 0770)
+		os.MkdirAll(directoryPath, os.ModeDir|0770)
 		return ioutil.WriteFile(tempRomPath, nesRomBytes, 0644)
 	}
 }
