@@ -22,8 +22,12 @@ Usage
 
 To use this tool, compile it for your favorite OS and then run it with the following options:
 
+    -enable-fds
+        Enable FDS support.
     -enable-ines
     	Enable iNES header support.  iNES headers will always be lower priority for operations than NES 2.0 headers.
+    -generate-fds-crcs
+        Generate FDS CRCs for data chunks.  Few, if any, emulators use these.
     -operation string
     	Operation to perform on the ROM set.  {read|write}
     -organization
