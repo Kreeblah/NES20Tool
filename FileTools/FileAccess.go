@@ -14,11 +14,12 @@
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with Foobar.  If not, see <https://www.gnu.org/licenses/>.
+   along with NES20Tool.  If not, see <https://www.gnu.org/licenses/>.
 */
 package FileTools
 
 import (
+	"NES20Tool/FDSTool"
 	"NES20Tool/NES20Tool"
 	"bufio"
 	"io/ioutil"
@@ -28,16 +29,16 @@ import (
 	"strings"
 )
 
-func LoadROM(fileName string, enableInes bool, preserveTrainer bool, basePath string) (*NES20Tool.NESROM, error) {
+func LoadFile(fileName string, basePath string) ([]byte, string, error) {
 	f, err := os.Open(fileName)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	defer f.Close()
 
 	stats, err := f.Stat()
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	size := stats.Size()
@@ -47,7 +48,7 @@ func LoadROM(fileName string, enableInes bool, preserveTrainer bool, basePath st
 	_, err = bufr.Read(byteSlice)
 
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	relativePath := ""
@@ -56,6 +57,15 @@ func LoadROM(fileName string, enableInes bool, preserveTrainer bool, basePath st
 		if relativePath[0] == os.PathSeparator {
 			relativePath = relativePath[1:]
 		}
+	}
+
+	return byteSlice, relativePath, nil
+}
+
+func LoadROM(fileName string, enableInes bool, preserveTrainer bool, basePath string) (*NES20Tool.NESROM, error) {
+	byteSlice, relativePath, err := LoadFile(fileName, basePath)
+	if err != nil {
+		return nil, err
 	}
 
 	decodedRom, err := NES20Tool.DecodeNESROM(byteSlice, enableInes, preserveTrainer, relativePath)
@@ -71,6 +81,27 @@ func LoadROM(fileName string, enableInes bool, preserveTrainer bool, basePath st
 	}
 
 	return decodedRom, err
+}
+
+func LoadFDSArchive(fileName string, basePath string, generateChecksums bool) (*FDSTool.FDSArchiveFile, error) {
+	byteSlice, relativePath, err := LoadFile(fileName, basePath)
+	if err != nil {
+		return nil, err
+	}
+
+	decodedArchive, err := FDSTool.DecodeFDSArchive(byteSlice, relativePath, generateChecksums)
+	if decodedArchive != nil {
+		decodedArchive.Filename = fileName
+		tempName := filepath.Base(fileName)
+		tempNameLen := len(tempName)
+		if tempName[tempNameLen-4:] == ".fds" {
+			tempName = tempName[0 : tempNameLen-4]
+		}
+
+		decodedArchive.Name = tempName
+	}
+
+	return decodedArchive, nil
 }
 
 func LoadROMRecursive(basePath string, enableInes bool, preserveTrainers bool) ([]*NES20Tool.NESROM, error) {
@@ -117,6 +148,50 @@ func LoadROMRecursive(basePath string, enableInes bool, preserveTrainers bool) (
 	return romSlice, nil
 }
 
+func LoadFDSArchiveRecursive(basePath string, generateChecksums bool) ([]*FDSTool.FDSArchiveFile, error) {
+	archiveSlice := make([]*FDSTool.FDSArchiveFile, 0)
+	fdsRegEx, err := regexp.Compile("^.+\\.fds$")
+	if err != nil {
+		return nil, err
+	}
+
+	fullPath, err := filepath.Abs(basePath)
+	if err != nil {
+		return nil, err
+	}
+
+	err = filepath.Walk(fullPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			panic(err)
+		}
+
+		if !info.IsDir() && fdsRegEx.MatchString(info.Name()) {
+			tempArchive, err := LoadFDSArchive(path, basePath, generateChecksums)
+			if err != nil {
+				switch err.(type) {
+				case *FDSTool.FDSError:
+					break
+				default:
+					return err
+				}
+			}
+
+			if tempArchive != nil {
+				println("Loading FDS archive: " + path)
+				archiveSlice = append(archiveSlice, tempArchive)
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return archiveSlice, nil
+}
+
 func LoadROMRecursiveMap(path string, enableInes bool, preserveTrainers bool) (map[[32]byte]*NES20Tool.NESROM, error) {
 	romSlice, err := LoadROMRecursive(path, enableInes, preserveTrainers)
 	if err != nil {
@@ -139,6 +214,28 @@ func LoadROMRecursiveMap(path string, enableInes bool, preserveTrainers bool) (m
 	return romMap, nil
 }
 
+//TODO: Determine a better way to identify duplicates based on archive/filesystem contents
+func LoadFDSArchiveRecursiveMap(path string, generateChecksums bool) (map[[32]byte]*FDSTool.FDSArchiveFile, error) {
+	archiveSlice, err := LoadFDSArchiveRecursive(path, generateChecksums)
+	if err != nil {
+		switch err.(type) {
+		case *FDSTool.FDSError:
+			break
+		default:
+			return nil, err
+		}
+	}
+
+	archiveMap := make(map[[32]byte]*FDSTool.FDSArchiveFile)
+	for index, _ := range archiveSlice {
+		if archiveMap[archiveSlice[index].SHA256] == nil {
+			archiveMap[archiveSlice[index].SHA256] = archiveSlice[index]
+		}
+	}
+
+	return archiveMap, nil
+}
+
 func WriteROM(romModel *NES20Tool.NESROM, enableInes bool, preserveTrainer bool, destinationBasePath string) error {
 	nesRomBytes, err := NES20Tool.EncodeNESROM(romModel, enableInes, preserveTrainer)
 	if err != nil {
@@ -149,13 +246,33 @@ func WriteROM(romModel *NES20Tool.NESROM, enableInes bool, preserveTrainer bool,
 		return ioutil.WriteFile(romModel.Filename, nesRomBytes, 0644)
 	} else {
 		tempRomPath := destinationBasePath
-		if tempRomPath[len(tempRomPath) - 1] != os.PathSeparator {
+		if tempRomPath[len(tempRomPath)-1] != os.PathSeparator {
 			tempRomPath = tempRomPath + string(os.PathSeparator)
 		}
 		tempRomPath = tempRomPath + romModel.RelativePath
 		directoryPath := tempRomPath[0:strings.LastIndex(tempRomPath, string(os.PathSeparator))]
 		os.MkdirAll(directoryPath, os.ModeDir|0770)
 		return ioutil.WriteFile(tempRomPath, nesRomBytes, 0644)
+	}
+}
+
+func WriteFDSArchive(archiveModel *FDSTool.FDSArchiveFile, writeFDSHeader bool, destinationBasePath string) error {
+	fdsArchiveBytes, err := FDSTool.EncodeFDSArchive(archiveModel, writeFDSHeader, false, false, false)
+	if err != nil {
+		return err
+	}
+
+	if destinationBasePath == "" {
+		return ioutil.WriteFile(archiveModel.Filename, fdsArchiveBytes, 0644)
+	} else {
+		tempRomPath := destinationBasePath
+		if tempRomPath[len(tempRomPath)-1] != os.PathSeparator {
+			tempRomPath = tempRomPath + string(os.PathSeparator)
+		}
+		tempRomPath = tempRomPath + archiveModel.RelativePath
+		directoryPath := tempRomPath[0:strings.LastIndex(tempRomPath, string(os.PathSeparator))]
+		os.MkdirAll(directoryPath, os.ModeDir|0770)
+		return ioutil.WriteFile(tempRomPath, fdsArchiveBytes, 0644)
 	}
 }
 

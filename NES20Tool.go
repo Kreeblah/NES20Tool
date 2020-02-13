@@ -14,11 +14,12 @@
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with Foobar.  If not, see <https://www.gnu.org/licenses/>.
+   along with NES20Tool.  If not, see <https://www.gnu.org/licenses/>.
 */
 package main
 
 import (
+	"NES20Tool/FDSTool"
 	"NES20Tool/FileTools"
 	"encoding/binary"
 	"encoding/hex"
@@ -29,7 +30,10 @@ import (
 )
 
 func main() {
+	romSetEnableFDS := flag.Bool("enable-fds", false, "Enable FDS support.")
+	romSetEnableFDSHeaders := flag.Bool("enable-fds-headers", false, "Enable writing FDS headers for organization.")
 	romSetEnableV1 := flag.Bool("enable-ines", false, "Enable iNES header support.  iNES headers will always be lower priority for operations than NES 2.0 headers.")
+	romSetGenerateFDSCRCs := flag.Bool("generate-fds-crcs", false, "Generate FDS CRCs for data chunks.  Few, if any, emulators use these.")
 	romSetCommand := flag.String("operation", "", "Operation to perform on the ROM set.  {read|write}")
 	romSetOrganization := flag.Bool("organization", false, "Read/write relative file location information for automatic organization.")
 	romSetPreserveTrainers := flag.Bool("preserve-trainers", false, "Preserve trainers in read/write process.")
@@ -52,8 +56,18 @@ func main() {
 				panic(err)
 			}
 
+			archiveMap := make(map[[32]byte]*FDSTool.FDSArchiveFile, 0)
+
+			if *romSetEnableFDS {
+				println("Loading FDS archives from: " + *romSetSourceDirectory)
+				archiveMap, err = FileTools.LoadFDSArchiveRecursiveMap(*romSetSourceDirectory, *romSetGenerateFDSCRCs)
+				if err != nil {
+					panic(err)
+				}
+			}
+
 			println("Generating XML")
-			xmlPayload, err := FileTools.MarshalXMLFromROMMap(romMap, *romSetEnableV1, *romSetPreserveTrainers, *romSetOrganization)
+			xmlPayload, err := FileTools.MarshalXMLFromROMMap(romMap, archiveMap, *romSetEnableV1, *romSetPreserveTrainers, *romSetOrganization)
 			if err != nil {
 				panic(err)
 			}
@@ -79,7 +93,7 @@ func main() {
 			}
 
 			println("Reading XML file")
-			romData, err := FileTools.UnmarshalXMLToROMMap(string(xmlPayload), *romSetEnableV1, *romSetPreserveTrainers, *romBasePath != "")
+			romData, archiveData, err := FileTools.UnmarshalXMLToROMMap(string(xmlPayload), *romSetEnableV1, *romSetPreserveTrainers, *romBasePath != "")
 			if err != nil {
 				panic(err)
 			}
@@ -88,6 +102,16 @@ func main() {
 			rawRoms, err := FileTools.LoadROMRecursive(*romSetSourceDirectory, *romSetEnableV1, *romSetPreserveTrainers)
 			if err != nil {
 				panic(err)
+			}
+
+			rawArchives := make([]*FDSTool.FDSArchiveFile, 0)
+
+			if *romSetEnableFDS {
+				println("Processing FDS archives in: " + *romSetSourceDirectory)
+				rawArchives, err = FileTools.LoadFDSArchiveRecursive(*romSetSourceDirectory, false)
+				if err != nil {
+					panic(err)
+				}
 			}
 
 			for key, _ := range rawRoms {
@@ -99,7 +123,7 @@ func main() {
 							println("Writing NES 2.0 ROM: " + rawRoms[key].Filename)
 						} else {
 							tempBasePath := *romBasePath
-							if tempBasePath[len(tempBasePath) - 1] != os.PathSeparator {
+							if tempBasePath[len(tempBasePath)-1] != os.PathSeparator {
 								tempBasePath = tempBasePath + string(os.PathSeparator)
 							}
 							println("Writing NES 2.0 ROM: " + tempBasePath + romData[rawRoms[key].SHA256].RelativePath)
@@ -121,7 +145,7 @@ func main() {
 							println("Writing iNES ROM: " + rawRoms[key].Filename)
 						} else {
 							tempBasePath := *romBasePath
-							if tempBasePath[len(tempBasePath) - 1] != os.PathSeparator {
+							if tempBasePath[len(tempBasePath)-1] != os.PathSeparator {
 								tempBasePath = tempBasePath + string(os.PathSeparator)
 							}
 							println("Writing iNES ROM: " + tempBasePath + romData[rawRoms[key].SHA256].RelativePath)
@@ -150,6 +174,50 @@ func main() {
 					println("ROM MD5:    " + hex.EncodeToString(rawRoms[key].MD5[:]))
 					println("ROM SHA1:   " + hex.EncodeToString(rawRoms[key].SHA1[:]))
 					println("ROM SHA256: " + hex.EncodeToString(rawRoms[key].SHA256[:]))
+				}
+			}
+
+			if *romSetEnableFDS {
+				for key, _ := range rawArchives {
+					println("Checking archive: " + rawArchives[key].Filename)
+
+					//TODO: Find a better way of matching these
+					if archiveData[rawArchives[key].SHA256] != nil {
+						println("Matched archive: " + archiveData[rawArchives[key].SHA256].Name)
+						if !reflect.DeepEqual(archiveData[rawArchives[key].SHA256], rawArchives[key]) || *romSetOrganization {
+							if *romBasePath == "" {
+								println("Writing FDS archive: " + rawArchives[key].Filename)
+							} else {
+								tempBasePath := *romBasePath
+								if tempBasePath[len(tempBasePath)-1] != os.PathSeparator {
+									tempBasePath = tempBasePath + string(os.PathSeparator)
+								}
+								println("Writing FDS archive: " + tempBasePath + archiveData[rawArchives[key].SHA256].RelativePath)
+								rawArchives[key].RelativePath = archiveData[rawArchives[key].SHA256].RelativePath
+							}
+
+							err = FileTools.WriteFDSArchive(rawArchives[key], *romSetEnableFDSHeaders, *romBasePath)
+							if err != nil {
+								if *romBasePath == "" {
+									println("Error writing FDS archive: " + rawArchives[key].Filename)
+								} else {
+									println("Error writing FDS archive: " + *romBasePath + string(os.PathSeparator) + archiveData[rawArchives[key].SHA256].RelativePath)
+								}
+								println(err.Error())
+							}
+						} else {
+							println("Skipping FDS archive (already up to date): " + rawArchives[key].Filename)
+						}
+					} else {
+						tempCrc32Bytes := make([]byte, 4)
+						binary.BigEndian.PutUint32(tempCrc32Bytes, rawArchives[key].CRC32)
+						tempCrc32String := hex.EncodeToString(tempCrc32Bytes)
+						println("Failed to match FDS archive: " + rawArchives[key].Filename)
+						println("Archive CRC32:  " + tempCrc32String)
+						println("Archive MD5:    " + hex.EncodeToString(rawArchives[key].MD5[:]))
+						println("Archive SHA1:   " + hex.EncodeToString(rawArchives[key].SHA1[:]))
+						println("Archive SHA256: " + hex.EncodeToString(rawArchives[key].SHA256[:]))
+					}
 				}
 			}
 

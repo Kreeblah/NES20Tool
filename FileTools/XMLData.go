@@ -14,11 +14,12 @@
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with Foobar.  If not, see <https://www.gnu.org/licenses/>.
+   along with NES20Tool.  If not, see <https://www.gnu.org/licenses/>.
 */
 package FileTools
 
 import (
+	"NES20Tool/FDSTool"
 	"NES20Tool/NES20Tool"
 	"encoding/binary"
 	"encoding/hex"
@@ -45,8 +46,9 @@ type NESXMLROM struct {
 	TrainerData  struct {
 		Text string `xml:",chardata"`
 	} `xml:"trainerData"`
-	Header20 *NES20XMLFields `xml:"nes20"`
-	Header10 *NES10XMLFields `xml:"ines"`
+	Header20   *NES20XMLFields `xml:"nes20"`
+	Header10   *NES10XMLFields `xml:"ines"`
+	FDSArchive *FDSXMLFields   `xml:"fds"`
 }
 
 type NES20XMLFields struct {
@@ -175,8 +177,222 @@ type NES10XMLFields struct {
 	} `xml:"tvSystem"`
 }
 
-func MarshalXMLFromROMMap(nesRoms map[[32]byte]*NES20Tool.NESROM, enableInes bool, preserveTrainer bool, enableOrganization bool) (string, error) {
+type FDSXMLFields struct {
+	Text           string              `xml:",chardata"`
+	FDSArchiveDisk []*FDSDiskXMLFields `xml:"fdsDisk"`
+}
+
+type FDSDiskXMLFields struct {
+	Text       string              `xml:",chardata"`
+	DiskNumber uint8               `xml:"diskNumber,attr"`
+	FDSSide    []*FDSSideXMLFields `xml:"fdsSide"`
+}
+
+type FDSSideXMLFields struct {
+	Text             string `xml:",chardata"`
+	Size             uint64 `xml:"size,attr"`
+	Crc32            string `xml:"crc32,attr"`
+	Md5              string `xml:"md5,attr"`
+	Sha1             string `xml:"sha1,attr"`
+	Sha256           string `xml:"sha256,attr"`
+	ManufacturerCode struct {
+		Text  string `xml:",chardata"`
+		Value uint8  `xml:"value,attr"`
+	} `xml:"manufacturerCode"`
+	FdsGameName struct {
+		Text  string `xml:",chardata"`
+		Value string `xml:"value,attr"`
+	} `xml:"fdsGameName"`
+	GameType struct {
+		Text  string `xml:",chardata"`
+		Value uint8  `xml:"value,attr"`
+	} `xml:"gameType"`
+	RevisionNumber struct {
+		Text  string `xml:",chardata"`
+		Value uint8  `xml:"value,attr"`
+	} `xml:"revisionNumber"`
+	SideNumber struct {
+		Text  string `xml:",chardata"`
+		Value uint8  `xml:"value,attr"`
+	} `xml:"sideNumber"`
+	DiskNumber struct {
+		Text  string `xml:",chardata"`
+		Value uint8  `xml:"value,attr"`
+	} `xml:"diskNumber"`
+	DiskType struct {
+		Text  string `xml:",chardata"`
+		Value uint8  `xml:"value,attr"`
+	} `xml:"diskType"`
+	Byte18 struct {
+		Text  string `xml:",chardata"`
+		Value uint8  `xml:"value,attr"`
+	} `xml:"byte18"`
+	BootFileId struct {
+		Text  string `xml:",chardata"`
+		Value uint8  `xml:"value,attr"`
+	} `xml:"bootFileId"`
+	Byte1a struct {
+		Text  string `xml:",chardata"`
+		Value uint8  `xml:"value,attr"`
+	} `xml:"byte1a"`
+	Byte1b struct {
+		Text  string `xml:",chardata"`
+		Value uint8  `xml:"value,attr"`
+	} `xml:"byte1b"`
+	Byte1c struct {
+		Text  string `xml:",chardata"`
+		Value uint8  `xml:"value,attr"`
+	} `xml:"byte1c"`
+	Byte1d struct {
+		Text  string `xml:",chardata"`
+		Value uint8  `xml:"value,attr"`
+	} `xml:"byte1d"`
+	Byte1e struct {
+		Text  string `xml:",chardata"`
+		Value uint8  `xml:"value,attr"`
+	} `xml:"byte1e"`
+	ManufacturingDate struct {
+		Text  string `xml:",chardata"`
+		Value string `xml:"value,attr"`
+	} `xml:"manufacturingDate"`
+	CountryCode struct {
+		Text  string `xml:",chardata"`
+		Value uint8  `xml:"value,attr"`
+	} `xml:"countryCode"`
+	Byte23 struct {
+		Text  string `xml:",chardata"`
+		Value uint8  `xml:"value,attr"`
+	} `xml:"byte23"`
+	Byte24 struct {
+		Text  string `xml:",chardata"`
+		Value uint8  `xml:"value,attr"`
+	} `xml:"byte24"`
+	Byte25 struct {
+		Text  string `xml:",chardata"`
+		Value uint8  `xml:"value,attr"`
+	} `xml:"byte25"`
+	Byte26 struct {
+		Text  string `xml:",chardata"`
+		Value uint8  `xml:"value,attr"`
+	} `xml:"byte26"`
+	Byte27 struct {
+		Text  string `xml:",chardata"`
+		Value uint8  `xml:"value,attr"`
+	} `xml:"byte27"`
+	Byte28 struct {
+		Text  string `xml:",chardata"`
+		Value uint8  `xml:"value,attr"`
+	} `xml:"byte28"`
+	Byte29 struct {
+		Text  string `xml:",chardata"`
+		Value uint8  `xml:"value,attr"`
+	} `xml:"byte29"`
+	Byte2a struct {
+		Text  string `xml:",chardata"`
+		Value uint8  `xml:"value,attr"`
+	} `xml:"byte2a"`
+	Byte2b struct {
+		Text  string `xml:",chardata"`
+		Value uint8  `xml:"value,attr"`
+	} `xml:"byte2b"`
+	RewriteDate struct {
+		Text  string `xml:",chardata"`
+		Value string `xml:"value,attr"`
+	} `xml:"rewriteDate"`
+	Byte2f struct {
+		Text  string `xml:",chardata"`
+		Value uint8  `xml:"value,attr"`
+	} `xml:"byte2f"`
+	Byte30 struct {
+		Text  string `xml:",chardata"`
+		Value uint8  `xml:"value,attr"`
+	} `xml:"byte30"`
+	DiskWriterSerialNumber struct {
+		Text  string `xml:",chardata"`
+		Value uint16 `xml:"value,attr"`
+	} `xml:"diskWriterSerialNumber"`
+	Byte33 struct {
+		Text  string `xml:",chardata"`
+		Value uint8  `xml:"value,attr"`
+	} `xml:"byte33"`
+	RewriteCount struct {
+		Text  string `xml:",chardata"`
+		Value uint8  `xml:"value,attr"`
+	} `xml:"rewriteCount"`
+	ActualDiskSide struct {
+		Text  string `xml:",chardata"`
+		Value uint8  `xml:"value,attr"`
+	} `xml:"actualDiskSide"`
+	Byte36 struct {
+		Text  string `xml:",chardata"`
+		Value uint8  `xml:"value,attr"`
+	} `xml:"byte36"`
+	Price struct {
+		Text  string `xml:",chardata"`
+		Value uint8  `xml:"value,attr"`
+	} `xml:"price"`
+	DiskInfoCrc struct {
+		Text  string `xml:",chardata"`
+		Value uint16 `xml:"value,attr"`
+	} `xml:"diskInfoCrc"`
+	FileTableCrc struct {
+		Text  string `xml:",chardata"`
+		Value uint16 `xml:"value,attr"`
+	} `xml:"fileTableCrc"`
+	UnallocatedSpace struct {
+		Text string `xml:",chardata"`
+	} `xml:"unallocatedSpace"`
+	UnallocatedSpaceOffset struct {
+		Text  string `xml:",chardata"`
+		Value uint16 `xml:"value,attr"`
+	} `xml:"unallocatedSpaceOffset"`
+	FDSFile []*FDSFileXMLFields `xml:"fdsFile"`
+}
+
+type FDSFileXMLFields struct {
+	Text       string `xml:",chardata"`
+	FileNumber struct {
+		Text  string `xml:",chardata"`
+		Value uint8  `xml:"value,attr"`
+	} `xml:"fileNumber"`
+	FileIdentificationCode struct {
+		Text  string `xml:",chardata"`
+		Value uint8  `xml:"value,attr"`
+	} `xml:"fileIdentificationCode"`
+	FileName struct {
+		Text  string `xml:",chardata"`
+		Value string `xml:"value,attr"`
+	} `xml:"fileName"`
+	FileAddress struct {
+		Text  string `xml:",chardata"`
+		Value uint16 `xml:"value,attr"`
+	} `xml:"fileAddress"`
+	FileSize struct {
+		Text  string `xml:",chardata"`
+		Value uint16 `xml:"value,attr"`
+	} `xml:"fileSize"`
+	FileType struct {
+		Text  string `xml:",chardata"`
+		Value uint8  `xml:"value,attr"`
+	} `xml:"fileType"`
+	FileMetadataCrc struct {
+		Text  string `xml:",chardata"`
+		Value uint16 `xml:"value,attr"`
+	} `xml:"fileMetadataCrc"`
+	FileData struct {
+		Text        string `xml:",chardata"`
+		Size        uint64 `xml:"size,attr"`
+		FileDataCrc uint16 `xml:"fdsCrc,attr"`
+		Crc32       string `xml:"crc32,attr"`
+		Md5         string `xml:"md5,attr"`
+		Sha1        string `xml:"sha1,attr"`
+		Sha256      string `xml:"sha256,attr"`
+	} `xml:"fileData"`
+}
+
+func MarshalXMLFromROMMap(nesRoms map[[32]byte]*NES20Tool.NESROM, fdsArchives map[[32]byte]*FDSTool.FDSArchiveFile, enableInes bool, preserveTrainer bool, enableOrganization bool) (string, error) {
 	romXml := &NESXML{}
+
 	for key, _ := range nesRoms {
 		if nesRoms[key].Header20 != nil {
 			tempXmlRom := &NESXMLROM{}
@@ -288,6 +504,116 @@ func MarshalXMLFromROMMap(nesRoms map[[32]byte]*NES20Tool.NESROM, enableInes boo
 		}
 	}
 
+	for key, _ := range fdsArchives {
+		tempXmlRom := &NESXMLROM{}
+		tempFdsArchive := &FDSXMLFields{}
+
+		tempXmlRom.Name = fdsArchives[key].Name
+		tempXmlRom.Size = fdsArchives[key].Size
+
+		if enableOrganization {
+			tempRelativePath := fdsArchives[key].RelativePath
+			if tempRelativePath[0] == os.PathSeparator {
+				tempRelativePath = tempRelativePath[1:]
+			}
+			tempRelativePath = strings.Replace(tempRelativePath, string(os.PathSeparator), "/", -1)
+			tempXmlRom.RelativePath = tempRelativePath
+		}
+
+		crc32Bytes := make([]byte, 4)
+		binary.BigEndian.PutUint32(crc32Bytes, fdsArchives[key].CRC32)
+		tempXmlRom.Crc32 = hex.EncodeToString(crc32Bytes)
+		tempXmlRom.Md5 = hex.EncodeToString(fdsArchives[key].MD5[:])
+		tempXmlRom.Sha1 = hex.EncodeToString(fdsArchives[key].SHA1[:])
+		tempXmlRom.Sha256 = hex.EncodeToString(fdsArchives[key].SHA256[:])
+
+		for diskKey, _ := range fdsArchives[key].ArchiveDisks {
+			tempDisk := &FDSDiskXMLFields{}
+			tempDisk.DiskNumber = fdsArchives[key].ArchiveDisks[diskKey].DiskNumber
+
+			for sideKey, _ := range fdsArchives[key].ArchiveDisks[diskKey].DiskSides {
+				tempSide := &FDSSideXMLFields{}
+				tempSide.Size = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].Size
+
+				sideCrc32Bytes := make([]byte, 4)
+				binary.BigEndian.PutUint32(sideCrc32Bytes, fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].CRC32)
+				tempSide.Crc32 = hex.EncodeToString(sideCrc32Bytes)
+				tempSide.Md5 = hex.EncodeToString(fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].MD5[:])
+				tempSide.Sha1 = hex.EncodeToString(fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].SHA1[:])
+				tempSide.Sha256 = hex.EncodeToString(fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].SHA256[:])
+
+				tempSide.ManufacturerCode.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].ManufacturerCode
+				tempSide.FdsGameName.Value = hex.EncodeToString([]byte(fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].FDSGameName))
+				tempSide.GameType.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].GameType
+				tempSide.RevisionNumber.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].RevisionNumber
+				tempSide.SideNumber.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].SideNumber
+				tempSide.DiskNumber.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].DiskNumber
+				tempSide.DiskType.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].DiskType
+				tempSide.Byte18.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].Byte18
+				tempSide.BootFileId.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].BootFileID
+				tempSide.Byte1a.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].Byte1A
+				tempSide.Byte1b.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].Byte1B
+				tempSide.Byte1c.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].Byte1C
+				tempSide.Byte1d.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].Byte1D
+				tempSide.Byte1e.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].Byte1E
+				tempSide.ManufacturingDate.Value = hex.EncodeToString(fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].ManufacturingDate)
+				tempSide.CountryCode.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].CountryCode
+				tempSide.Byte23.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].Byte23
+				tempSide.Byte24.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].Byte24
+				tempSide.Byte25.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].Byte25
+				tempSide.Byte26.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].Byte26
+				tempSide.Byte27.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].Byte27
+				tempSide.Byte28.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].Byte28
+				tempSide.Byte29.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].Byte29
+				tempSide.Byte2a.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].Byte2A
+				tempSide.Byte2b.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].Byte2B
+				tempSide.RewriteDate.Value = hex.EncodeToString(fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].RewriteDate)
+				tempSide.Byte2f.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].Byte2F
+				tempSide.Byte30.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].Byte30
+				tempSide.DiskWriterSerialNumber.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].DiskWriterSerialNumber
+				tempSide.Byte33.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].Byte33
+				tempSide.RewriteCount.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].RewriteCount
+				tempSide.ActualDiskSide.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].ActualDiskSide
+				tempSide.Byte36.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].Byte36
+				tempSide.Price.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].Price
+				tempSide.DiskInfoCrc.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].DiskInfoCRC
+				tempSide.FileTableCrc.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].FileTableCRC
+				tempSide.UnallocatedSpaceOffset.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].UnallocatedSpaceOffset
+				tempSide.UnallocatedSpace.Text = hex.EncodeToString(fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].UnallocatedSpace)
+
+				for fileKey, _ := range fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].SideFiles {
+					tempFile := &FDSFileXMLFields{}
+
+					tempFile.FileNumber.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].SideFiles[fileKey].FileNumber
+					tempFile.FileIdentificationCode.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].SideFiles[fileKey].FileIdentificationCode
+					tempFile.FileName.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].SideFiles[fileKey].FileName
+					tempFile.FileAddress.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].SideFiles[fileKey].FileAddress
+					tempFile.FileSize.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].SideFiles[fileKey].FileSize
+					tempFile.FileType.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].SideFiles[fileKey].FileType
+					tempFile.FileMetadataCrc.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].SideFiles[fileKey].FileMetadataCRC
+					tempFile.FileData.Size = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].SideFiles[fileKey].FileData.Size
+
+					fileCrc32Bytes := make([]byte, 4)
+					binary.BigEndian.PutUint32(fileCrc32Bytes, fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].SideFiles[fileKey].FileData.CRC32)
+					tempFile.FileData.Crc32 = hex.EncodeToString(fileCrc32Bytes)
+					tempFile.FileData.Md5 = hex.EncodeToString(fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].SideFiles[fileKey].FileData.MD5[:])
+					tempFile.FileData.Sha1 = hex.EncodeToString(fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].SideFiles[fileKey].FileData.SHA1[:])
+					tempFile.FileData.Sha256 = hex.EncodeToString(fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].SideFiles[fileKey].FileData.SHA256[:])
+					tempFile.FileData.FileDataCrc = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].SideFiles[fileKey].FileData.FileDataCRC
+
+					tempSide.FDSFile = append(tempSide.FDSFile, tempFile)
+				}
+
+				tempDisk.FDSSide = append(tempDisk.FDSSide, tempSide)
+			}
+
+			tempFdsArchive.FDSArchiveDisk = append(tempFdsArchive.FDSArchiveDisk, tempDisk)
+		}
+
+		tempXmlRom.FDSArchive = tempFdsArchive
+		romXml.XMLROMs = append(romXml.XMLROMs, tempXmlRom)
+	}
+
 	xmlBytes, err := xml.MarshalIndent(romXml, "", "  ")
 	if err != nil {
 		return "", err
@@ -296,14 +622,15 @@ func MarshalXMLFromROMMap(nesRoms map[[32]byte]*NES20Tool.NESROM, enableInes boo
 	return string(xmlBytes), nil
 }
 
-func UnmarshalXMLToROMMap(xmlPayload string, enableInes bool, preserveTrainer bool, enableOrganization bool) (map[[32]byte]*NES20Tool.NESROM, error) {
+func UnmarshalXMLToROMMap(xmlPayload string, enableInes bool, preserveTrainer bool, enableOrganization bool) (map[[32]byte]*NES20Tool.NESROM, map[[32]byte]*FDSTool.FDSArchiveFile, error) {
 	xmlStruct := &NESXML{}
 	err := xml.Unmarshal([]byte(xmlPayload), xmlStruct)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	romMap := make(map[[32]byte]*NES20Tool.NESROM)
+	archiveMap := make(map[[32]byte]*FDSTool.FDSArchiveFile)
 
 	for index, _ := range xmlStruct.XMLROMs {
 		tempRom := &NES20Tool.NESROM{}
@@ -379,6 +706,8 @@ func UnmarshalXMLToROMMap(xmlPayload string, enableInes bool, preserveTrainer bo
 			tempRom.Header20.ExtendedConsoleType = xmlStruct.XMLROMs[index].Header20.ExtendedConsoleType.Value
 			tempRom.Header20.MiscROMs = xmlStruct.XMLROMs[index].Header20.MiscRoms.Value
 			tempRom.Header20.DefaultExpansion = xmlStruct.XMLROMs[index].Header20.DefaultExpansion.Value
+
+			romMap[tempRom.SHA256] = tempRom
 		} else if enableInes && xmlStruct.XMLROMs[index].Header10 != nil {
 			tempRomHeader10 := &NES20Tool.NES10Header{}
 			tempRom.Header10 = tempRomHeader10
@@ -393,10 +722,160 @@ func UnmarshalXMLToROMMap(xmlPayload string, enableInes bool, preserveTrainer bo
 			tempRom.Header10.VsUnisystem = xmlStruct.XMLROMs[index].Header10.VsUnisystem.Value
 			tempRom.Header10.PRGRAMSize = xmlStruct.XMLROMs[index].Header10.Prgram.Size
 			tempRom.Header10.TVSystem = xmlStruct.XMLROMs[index].Header10.TvSystem.Value
-		}
 
-		romMap[tempRom.SHA256] = tempRom
+			romMap[tempRom.SHA256] = tempRom
+		} else if xmlStruct.XMLROMs[index].FDSArchive != nil {
+			tempArchive := &FDSTool.FDSArchiveFile{}
+			tempArchive.CRC32 = binary.BigEndian.Uint32(crc32Bytes)
+			copy(tempArchive.MD5[:], md5Bytes)
+			copy(tempArchive.SHA1[:], sha1Bytes)
+			copy(tempArchive.SHA256[:], sha256Bytes)
+
+			tempArchive.Name = xmlStruct.XMLROMs[index].Name
+			tempArchive.Size = xmlStruct.XMLROMs[index].Size
+
+			if enableOrganization {
+				tempRelativePath := xmlStruct.XMLROMs[index].RelativePath
+				tempRelativePath = strings.Replace(tempRelativePath, "/", string(os.PathSeparator), -1)
+				tempArchive.RelativePath = tempRelativePath
+			}
+
+			for diskKey, _ := range xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk {
+				tempDisk := &FDSTool.FDSDisk{}
+				tempDisk.DiskNumber = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].DiskNumber
+
+				for sideKey, _ := range xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide {
+					tempSide := &FDSTool.FDSSide{}
+
+					tempSide.Size = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].Size
+
+					sideCrc32Bytes, err := hex.DecodeString(xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].Crc32)
+					if err == nil {
+						tempSide.CRC32 = binary.BigEndian.Uint32(sideCrc32Bytes)
+					}
+
+					sideMd5Bytes, err := hex.DecodeString(xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].Md5)
+					if err == nil {
+						copy(tempSide.MD5[:], sideMd5Bytes)
+					}
+
+					sideSha1Bytes, err := hex.DecodeString(xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].Sha1)
+					if err == nil {
+						copy(tempSide.SHA1[:], sideSha1Bytes)
+					}
+
+					sideSha256Bytes, err := hex.DecodeString(xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].Sha256)
+					if err == nil {
+						copy(tempSide.SHA256[:], sideSha256Bytes)
+					}
+
+					tempSide.ManufacturerCode = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].ManufacturerCode.Value
+
+					fdsGameNameString, err := hex.DecodeString(xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].FdsGameName.Value)
+					if err == nil {
+						tempSide.FDSGameName = string(fdsGameNameString)
+					}
+
+					tempSide.GameType = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].GameType.Value
+					tempSide.RevisionNumber = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].RevisionNumber.Value
+					tempSide.SideNumber = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].SideNumber.Value
+					tempSide.DiskNumber = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].DiskNumber.Value
+					tempSide.DiskType = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].DiskType.Value
+					tempSide.Byte18 = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].Byte18.Value
+					tempSide.BootFileID = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].BootFileId.Value
+					tempSide.Byte1A = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].Byte1a.Value
+					tempSide.Byte1B = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].Byte1b.Value
+					tempSide.Byte1C = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].Byte1c.Value
+					tempSide.Byte1D = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].Byte1d.Value
+					tempSide.Byte1E = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].Byte1e.Value
+
+					sideManufacturingDateBytes, err := hex.DecodeString(xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].ManufacturingDate.Value)
+					if err == nil {
+						tempSide.ManufacturingDate = sideManufacturingDateBytes
+					}
+
+					tempSide.CountryCode = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].CountryCode.Value
+					tempSide.Byte23 = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].Byte23.Value
+					tempSide.Byte24 = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].Byte24.Value
+					tempSide.Byte25 = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].Byte25.Value
+					tempSide.Byte26 = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].Byte26.Value
+					tempSide.Byte27 = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].Byte27.Value
+					tempSide.Byte28 = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].Byte28.Value
+					tempSide.Byte29 = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].Byte29.Value
+					tempSide.Byte2A = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].Byte2a.Value
+					tempSide.Byte2B = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].Byte2b.Value
+
+					sideRewriteDateBytes, err := hex.DecodeString(xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].RewriteDate.Value)
+					if err == nil {
+						tempSide.RewriteDate = sideRewriteDateBytes
+					}
+
+					tempSide.Byte2F = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].Byte2f.Value
+					tempSide.Byte30 = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].Byte30.Value
+					tempSide.DiskWriterSerialNumber = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].DiskWriterSerialNumber.Value
+					tempSide.Byte33 = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].Byte33.Value
+					tempSide.RewriteCount = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].RewriteCount.Value
+					tempSide.ActualDiskSide = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].ActualDiskSide.Value
+					tempSide.Byte36 = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].Byte36.Value
+					tempSide.Price = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].Price.Value
+					tempSide.DiskInfoCRC = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].DiskInfoCrc.Value
+					tempSide.FileTableCRC = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].FileTableCrc.Value
+					tempSide.UnallocatedSpaceOffset = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].UnallocatedSpaceOffset.Value
+
+					sideUnallocatedSpaceBytes, err := hex.DecodeString(xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].UnallocatedSpace.Text)
+					if err == nil {
+						tempSide.UnallocatedSpace = sideUnallocatedSpaceBytes
+					}
+
+					for fileKey, _ := range xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].FDSFile {
+						tempFile := &FDSTool.FDSFile{}
+
+						tempFile.FileNumber = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].FDSFile[fileKey].FileNumber.Value
+						tempFile.FileIdentificationCode = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].FDSFile[fileKey].FileIdentificationCode.Value
+						tempFile.FileName = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].FDSFile[fileKey].FileName.Value
+						tempFile.FileAddress = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].FDSFile[fileKey].FileAddress.Value
+						tempFile.FileSize = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].FDSFile[fileKey].FileSize.Value
+						tempFile.FileType = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].FDSFile[fileKey].FileType.Value
+						tempFile.FileMetadataCRC = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].FDSFile[fileKey].FileMetadataCrc.Value
+
+						tempFileData := &FDSTool.FDSFileData{}
+
+						tempFileData.Size = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].FDSFile[fileKey].FileData.Size
+						fileDataCrc32Bytes, err := hex.DecodeString(xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].FDSFile[fileKey].FileData.Crc32)
+						if err == nil {
+							tempFileData.CRC32 = binary.BigEndian.Uint32(fileDataCrc32Bytes)
+						}
+
+						fileDataMd5Bytes, err := hex.DecodeString(xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].FDSFile[fileKey].FileData.Md5)
+						if err == nil {
+							copy(tempFileData.MD5[:], fileDataMd5Bytes)
+						}
+
+						fileDataSha1Bytes, err := hex.DecodeString(xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].FDSFile[fileKey].FileData.Sha1)
+						if err == nil {
+							copy(tempFileData.SHA1[:], fileDataSha1Bytes)
+						}
+
+						fileDataSha256Bytes, err := hex.DecodeString(xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].FDSFile[fileKey].FileData.Sha256)
+						if err == nil {
+							copy(tempFileData.SHA256[:], fileDataSha256Bytes)
+						}
+
+						tempFileData.FileDataCRC = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].FDSFile[fileKey].FileData.FileDataCrc
+
+						tempFile.FileData = tempFileData
+						tempSide.SideFiles = append(tempSide.SideFiles, tempFile)
+					}
+
+					tempDisk.DiskSides = append(tempDisk.DiskSides, tempSide)
+				}
+
+				tempArchive.ArchiveDisks = append(tempArchive.ArchiveDisks, tempDisk)
+			}
+
+			archiveMap[tempArchive.SHA256] = tempArchive
+		}
 	}
 
-	return romMap, nil
+	return romMap, archiveMap, nil
 }
