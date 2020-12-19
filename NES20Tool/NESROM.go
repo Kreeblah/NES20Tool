@@ -338,7 +338,7 @@ func EncodeNESROM(romModel *NESROM, enableInes bool, truncateRom bool, preserveT
 			Flag6Byte = Flag6Byte | 0b00000010
 		}
 
-		if romModel.Header20.Trainer {
+		if romModel.Header20.Trainer && preserveTrainer {
 			Flag6Byte = Flag6Byte | 0b00000100
 		}
 
@@ -402,7 +402,7 @@ func EncodeNESROM(romModel *NESROM, enableInes bool, truncateRom bool, preserveT
 			Flag6Byte = Flag6Byte | 0b00000010
 		}
 
-		if romModel.Header10.Trainer {
+		if romModel.Header10.Trainer && preserveTrainer {
 			Flag6Byte = Flag6Byte | 0b00000100
 		}
 
