@@ -169,7 +169,7 @@ func DecodeFDSArchive(inputFile []byte, relativePath string, generateChecksums b
 
 	diskNumbers := make([]uint8, 0)
 
-	for sideIndex, _ := range sideArray {
+	for sideIndex := range sideArray {
 		hasDiskNumber := false
 		for _, diskNumber := range diskNumbers {
 			if sideArray[sideIndex].DiskNumber == diskNumber {
@@ -184,15 +184,15 @@ func DecodeFDSArchive(inputFile []byte, relativePath string, generateChecksums b
 
 	sort.Slice(diskNumbers, func(i int, j int) bool { return diskNumbers[i] < diskNumbers[j] })
 
-	for diskIndex, _ := range diskNumbers {
+	for diskIndex := range diskNumbers {
 		tempArchive.ArchiveDisks = append(tempArchive.ArchiveDisks, &FDSDisk{})
 		numberOfDisks := len(tempArchive.ArchiveDisks)
 		tempArchive.ArchiveDisks[numberOfDisks-1].DiskNumber = diskNumbers[diskIndex]
 		tempArchive.ArchiveDisks[numberOfDisks-1].DiskSides = make([]*FDSSide, 0)
 	}
 
-	for sideIndex, _ := range sideArray {
-		for diskIndex, _ := range tempArchive.ArchiveDisks {
+	for sideIndex := range sideArray {
+		for diskIndex := range tempArchive.ArchiveDisks {
 			if tempArchive.ArchiveDisks[diskIndex].DiskNumber == sideArray[sideIndex].DiskNumber {
 				tempArchive.ArchiveDisks[diskIndex].DiskSides = append(tempArchive.ArchiveDisks[diskIndex].DiskSides, sideArray[sideIndex])
 			}
@@ -379,7 +379,7 @@ func EncodeFDSArchive(inputArchive *FDSArchiveFile, writeHeader bool, writeCheck
 
 	if writeHeader {
 		var numberOfSides uint8 = 0
-		for diskIndex, _ := range inputArchive.ArchiveDisks {
+		for diskIndex := range inputArchive.ArchiveDisks {
 			numberOfSides = numberOfSides + uint8(len(inputArchive.ArchiveDisks[diskIndex].DiskSides))
 		}
 		archiveBytes = append(archiveBytes, []byte(FDS_HEADER_MAGIC)...)
@@ -387,8 +387,8 @@ func EncodeFDSArchive(inputArchive *FDSArchiveFile, writeHeader bool, writeCheck
 		archiveBytes = append(archiveBytes, []byte(FDS_HEADER_PADDING)...)
 	}
 
-	for diskIndex, _ := range inputArchive.ArchiveDisks {
-		for sideIndex, _ := range inputArchive.ArchiveDisks[diskIndex].DiskSides {
+	for diskIndex := range inputArchive.ArchiveDisks {
+		for sideIndex := range inputArchive.ArchiveDisks[diskIndex].DiskSides {
 			sideBytes, err := EncodeFDSSide(inputArchive.ArchiveDisks[diskIndex].DiskSides[sideIndex], writeChecksums, generateChecksums, writeQd)
 			if err != nil {
 				return nil, err
@@ -488,7 +488,7 @@ func EncodeFDSSide(inputSide *FDSSide, writeChecksums bool, generateChecksums bo
 
 	sideSlice = append(sideSlice, fileLayoutSlice...)
 
-	for index, _ := range inputSide.SideFiles {
+	for index := range inputSide.SideFiles {
 		fileHeaderSlice := make([]byte, 0)
 
 		fileHeaderSlice = append(fileHeaderSlice, byte(FDS_FILE_HEADER_BLOCK))

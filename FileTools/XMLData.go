@@ -57,12 +57,14 @@ type NES20XMLFields struct {
 		Size           uint16 `xml:"size,attr"`
 		SizeExponent   uint8  `xml:"sizeExponent,attr"`
 		SizeMultiplier uint8  `xml:"sizeMultiplier,attr"`
+		Sum16          string `xml:"sum16,attr"`
 	} `xml:"prgrom"`
 	Chrrom struct {
 		Text           string `xml:",chardata"`
 		Size           uint16 `xml:"size,attr"`
 		SizeExponent   uint8  `xml:"sizeExponent,attr"`
 		SizeMultiplier uint8  `xml:"sizeMultiplier,attr"`
+		Sum16          string `xml:"sum16,attr"`
 	} `xml:"chrrom"`
 	Prgram struct {
 		Text string `xml:",chardata"`
@@ -138,10 +140,12 @@ type NES10XMLFields struct {
 	Prgrom struct {
 		Text string `xml:",chardata"`
 		Size uint8  `xml:"size,attr"`
+		Sum16 string `xml:"sum16,attr"`
 	} `xml:"prgrom"`
 	Chrrom struct {
 		Text string `xml:",chardata"`
 		Size uint8  `xml:"size,attr"`
+		Sum16 string `xml:"sum16,attr"`
 	} `xml:"chrrom"`
 	MirroringType struct {
 		Text  string `xml:",chardata"`
@@ -393,7 +397,7 @@ type FDSFileXMLFields struct {
 func MarshalXMLFromROMMap(nesRoms map[[32]byte]*NES20Tool.NESROM, fdsArchives map[[32]byte]*FDSTool.FDSArchiveFile, enableInes bool, preserveTrainer bool, enableOrganization bool) (string, error) {
 	romXml := &NESXML{}
 
-	for key, _ := range nesRoms {
+	for key := range nesRoms {
 		if nesRoms[key].Header20 != nil {
 			tempXmlRom := &NESXMLROM{}
 			tempXmlHeader20 := &NES20XMLFields{}
@@ -404,11 +408,11 @@ func MarshalXMLFromROMMap(nesRoms map[[32]byte]*NES20Tool.NESROM, fdsArchives ma
 
 			crc32Bytes := make([]byte, 4)
 			binary.BigEndian.PutUint32(crc32Bytes, nesRoms[key].CRC32)
-			tempXmlRom.Crc32 = hex.EncodeToString(crc32Bytes)
+			tempXmlRom.Crc32 = strings.ToUpper(hex.EncodeToString(crc32Bytes))
 
-			tempXmlRom.Md5 = hex.EncodeToString(nesRoms[key].MD5[:])
-			tempXmlRom.Sha1 = hex.EncodeToString(nesRoms[key].SHA1[:])
-			tempXmlRom.Sha256 = hex.EncodeToString(nesRoms[key].SHA256[:])
+			tempXmlRom.Md5 = strings.ToUpper(hex.EncodeToString(nesRoms[key].MD5[:]))
+			tempXmlRom.Sha1 = strings.ToUpper(hex.EncodeToString(nesRoms[key].SHA1[:]))
+			tempXmlRom.Sha256 = strings.ToUpper(hex.EncodeToString(nesRoms[key].SHA256[:]))
 
 			if enableOrganization {
 				tempRelativePath := nesRoms[key].RelativePath
@@ -420,7 +424,7 @@ func MarshalXMLFromROMMap(nesRoms map[[32]byte]*NES20Tool.NESROM, fdsArchives ma
 			}
 
 			if preserveTrainer && nesRoms[key].TrainerData != nil {
-				tempXmlRom.TrainerData.Text = hex.EncodeToString(nesRoms[key].TrainerData)
+				tempXmlRom.TrainerData.Text = strings.ToUpper(hex.EncodeToString(nesRoms[key].TrainerData))
 			}
 
 			if nesRoms[key].Header20.PRGROMSize > 0 {
@@ -430,12 +434,22 @@ func MarshalXMLFromROMMap(nesRoms map[[32]byte]*NES20Tool.NESROM, fdsArchives ma
 				tempXmlRom.Header20.Prgrom.SizeMultiplier = nesRoms[key].Header20.PRGROMSizeMultiplier
 			}
 
+			prgSum16Bytes := make([]byte, 2)
+			binary.BigEndian.PutUint16(prgSum16Bytes, nesRoms[key].Header20.PRGROMSum16)
+
+			tempXmlRom.Header20.Prgrom.Sum16 = strings.ToUpper(hex.EncodeToString(prgSum16Bytes))
+
 			if nesRoms[key].Header20.CHRROMSize > 0 {
 				tempXmlRom.Header20.Chrrom.Size = nesRoms[key].Header20.CHRROMSize
 			} else {
 				tempXmlRom.Header20.Chrrom.SizeExponent = nesRoms[key].Header20.CHRROMSizeExponent
 				tempXmlRom.Header20.Chrrom.SizeMultiplier = nesRoms[key].Header20.CHRROMSizeMultiplier
 			}
+
+			chrSum16Bytes := make([]byte, 2)
+			binary.BigEndian.PutUint16(chrSum16Bytes, nesRoms[key].Header20.CHRROMSum16)
+
+			tempXmlRom.Header20.Chrrom.Sum16 = strings.ToUpper(hex.EncodeToString(chrSum16Bytes))
 
 			tempXmlRom.Header20.Prgram.Size = nesRoms[key].Header20.PRGRAMSize
 			tempXmlRom.Header20.Prgnvram.Size = nesRoms[key].Header20.PRGNVRAMSize
@@ -466,11 +480,11 @@ func MarshalXMLFromROMMap(nesRoms map[[32]byte]*NES20Tool.NESROM, fdsArchives ma
 
 			crc32Bytes := make([]byte, 4)
 			binary.BigEndian.PutUint32(crc32Bytes, nesRoms[key].CRC32)
-			tempXmlRom.Crc32 = hex.EncodeToString(crc32Bytes)
+			tempXmlRom.Crc32 = strings.ToUpper(hex.EncodeToString(crc32Bytes))
 
-			tempXmlRom.Md5 = hex.EncodeToString(nesRoms[key].MD5[:])
-			tempXmlRom.Sha1 = hex.EncodeToString(nesRoms[key].SHA1[:])
-			tempXmlRom.Sha256 = hex.EncodeToString(nesRoms[key].SHA256[:])
+			tempXmlRom.Md5 = strings.ToUpper(hex.EncodeToString(nesRoms[key].MD5[:]))
+			tempXmlRom.Sha1 = strings.ToUpper(hex.EncodeToString(nesRoms[key].SHA1[:]))
+			tempXmlRom.Sha256 = strings.ToUpper(hex.EncodeToString(nesRoms[key].SHA256[:]))
 
 			if enableOrganization {
 				tempRelativePath := nesRoms[key].RelativePath
@@ -482,15 +496,22 @@ func MarshalXMLFromROMMap(nesRoms map[[32]byte]*NES20Tool.NESROM, fdsArchives ma
 			}
 
 			if preserveTrainer && nesRoms[key].TrainerData != nil {
-				tempXmlRom.TrainerData.Text = hex.EncodeToString(nesRoms[key].TrainerData)
+				tempXmlRom.TrainerData.Text = strings.ToUpper(hex.EncodeToString(nesRoms[key].TrainerData))
 			}
 
 			tempNesRom := nesRoms[key]
 			if tempNesRom == nil {
 			}
 
+			prgSum16Bytes := make([]byte, 2)
+			binary.BigEndian.PutUint16(prgSum16Bytes, nesRoms[key].Header10.PRGROMSum16)
+			chrSum16Bytes := make([]byte, 2)
+			binary.BigEndian.PutUint16(chrSum16Bytes, nesRoms[key].Header10.CHRROMSum16)
+
 			tempXmlRom.Header10.Prgrom.Size = nesRoms[key].Header10.PRGROMSize
+			tempXmlRom.Header20.Prgrom.Sum16 = strings.ToUpper(hex.EncodeToString(prgSum16Bytes))
 			tempXmlRom.Header10.Chrrom.Size = nesRoms[key].Header10.CHRROMSize
+			tempXmlRom.Header10.Chrrom.Sum16 = strings.ToUpper(hex.EncodeToString(chrSum16Bytes))
 			tempXmlRom.Header10.MirroringType.Value = nesRoms[key].Header10.MirroringType
 			tempXmlRom.Header10.Battery.Value = nesRoms[key].Header10.Battery
 			tempXmlRom.Header10.Trainer.Value = nesRoms[key].Header10.Trainer
@@ -504,7 +525,7 @@ func MarshalXMLFromROMMap(nesRoms map[[32]byte]*NES20Tool.NESROM, fdsArchives ma
 		}
 	}
 
-	for key, _ := range fdsArchives {
+	for key := range fdsArchives {
 		tempXmlRom := &NESXMLROM{}
 		tempFdsArchive := &FDSXMLFields{}
 
@@ -522,28 +543,28 @@ func MarshalXMLFromROMMap(nesRoms map[[32]byte]*NES20Tool.NESROM, fdsArchives ma
 
 		crc32Bytes := make([]byte, 4)
 		binary.BigEndian.PutUint32(crc32Bytes, fdsArchives[key].CRC32)
-		tempXmlRom.Crc32 = hex.EncodeToString(crc32Bytes)
-		tempXmlRom.Md5 = hex.EncodeToString(fdsArchives[key].MD5[:])
-		tempXmlRom.Sha1 = hex.EncodeToString(fdsArchives[key].SHA1[:])
-		tempXmlRom.Sha256 = hex.EncodeToString(fdsArchives[key].SHA256[:])
+		tempXmlRom.Crc32 = strings.ToUpper(hex.EncodeToString(crc32Bytes))
+		tempXmlRom.Md5 = strings.ToUpper(hex.EncodeToString(fdsArchives[key].MD5[:]))
+		tempXmlRom.Sha1 = strings.ToUpper(hex.EncodeToString(fdsArchives[key].SHA1[:]))
+		tempXmlRom.Sha256 = strings.ToUpper(hex.EncodeToString(fdsArchives[key].SHA256[:]))
 
-		for diskKey, _ := range fdsArchives[key].ArchiveDisks {
+		for diskKey := range fdsArchives[key].ArchiveDisks {
 			tempDisk := &FDSDiskXMLFields{}
 			tempDisk.DiskNumber = fdsArchives[key].ArchiveDisks[diskKey].DiskNumber
 
-			for sideKey, _ := range fdsArchives[key].ArchiveDisks[diskKey].DiskSides {
+			for sideKey := range fdsArchives[key].ArchiveDisks[diskKey].DiskSides {
 				tempSide := &FDSSideXMLFields{}
 				tempSide.Size = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].Size
 
 				sideCrc32Bytes := make([]byte, 4)
 				binary.BigEndian.PutUint32(sideCrc32Bytes, fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].CRC32)
-				tempSide.Crc32 = hex.EncodeToString(sideCrc32Bytes)
-				tempSide.Md5 = hex.EncodeToString(fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].MD5[:])
-				tempSide.Sha1 = hex.EncodeToString(fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].SHA1[:])
-				tempSide.Sha256 = hex.EncodeToString(fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].SHA256[:])
+				tempSide.Crc32 = strings.ToUpper(hex.EncodeToString(sideCrc32Bytes))
+				tempSide.Md5 = strings.ToUpper(hex.EncodeToString(fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].MD5[:]))
+				tempSide.Sha1 = strings.ToUpper(hex.EncodeToString(fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].SHA1[:]))
+				tempSide.Sha256 = strings.ToUpper(hex.EncodeToString(fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].SHA256[:]))
 
 				tempSide.ManufacturerCode.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].ManufacturerCode
-				tempSide.FdsGameName.Value = hex.EncodeToString([]byte(fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].FDSGameName))
+				tempSide.FdsGameName.Value = strings.ToUpper(hex.EncodeToString([]byte(fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].FDSGameName)))
 				tempSide.GameType.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].GameType
 				tempSide.RevisionNumber.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].RevisionNumber
 				tempSide.SideNumber.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].SideNumber
@@ -556,7 +577,7 @@ func MarshalXMLFromROMMap(nesRoms map[[32]byte]*NES20Tool.NESROM, fdsArchives ma
 				tempSide.Byte1c.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].Byte1C
 				tempSide.Byte1d.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].Byte1D
 				tempSide.Byte1e.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].Byte1E
-				tempSide.ManufacturingDate.Value = hex.EncodeToString(fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].ManufacturingDate)
+				tempSide.ManufacturingDate.Value = strings.ToUpper(hex.EncodeToString(fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].ManufacturingDate))
 				tempSide.CountryCode.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].CountryCode
 				tempSide.Byte23.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].Byte23
 				tempSide.Byte24.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].Byte24
@@ -567,7 +588,7 @@ func MarshalXMLFromROMMap(nesRoms map[[32]byte]*NES20Tool.NESROM, fdsArchives ma
 				tempSide.Byte29.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].Byte29
 				tempSide.Byte2a.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].Byte2A
 				tempSide.Byte2b.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].Byte2B
-				tempSide.RewriteDate.Value = hex.EncodeToString(fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].RewriteDate)
+				tempSide.RewriteDate.Value = strings.ToUpper(hex.EncodeToString(fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].RewriteDate))
 				tempSide.Byte2f.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].Byte2F
 				tempSide.Byte30.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].Byte30
 				tempSide.DiskWriterSerialNumber.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].DiskWriterSerialNumber
@@ -579,9 +600,9 @@ func MarshalXMLFromROMMap(nesRoms map[[32]byte]*NES20Tool.NESROM, fdsArchives ma
 				tempSide.DiskInfoCrc.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].DiskInfoCRC
 				tempSide.FileTableCrc.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].FileTableCRC
 				tempSide.UnallocatedSpaceOffset.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].UnallocatedSpaceOffset
-				tempSide.UnallocatedSpace.Text = hex.EncodeToString(fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].UnallocatedSpace)
+				tempSide.UnallocatedSpace.Text = strings.ToUpper(hex.EncodeToString(fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].UnallocatedSpace))
 
-				for fileKey, _ := range fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].SideFiles {
+				for fileKey := range fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].SideFiles {
 					tempFile := &FDSFileXMLFields{}
 
 					tempFile.FileNumber.Value = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].SideFiles[fileKey].FileNumber
@@ -595,10 +616,10 @@ func MarshalXMLFromROMMap(nesRoms map[[32]byte]*NES20Tool.NESROM, fdsArchives ma
 
 					fileCrc32Bytes := make([]byte, 4)
 					binary.BigEndian.PutUint32(fileCrc32Bytes, fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].SideFiles[fileKey].FileData.CRC32)
-					tempFile.FileData.Crc32 = hex.EncodeToString(fileCrc32Bytes)
-					tempFile.FileData.Md5 = hex.EncodeToString(fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].SideFiles[fileKey].FileData.MD5[:])
-					tempFile.FileData.Sha1 = hex.EncodeToString(fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].SideFiles[fileKey].FileData.SHA1[:])
-					tempFile.FileData.Sha256 = hex.EncodeToString(fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].SideFiles[fileKey].FileData.SHA256[:])
+					tempFile.FileData.Crc32 = strings.ToUpper(hex.EncodeToString(fileCrc32Bytes))
+					tempFile.FileData.Md5 = strings.ToUpper(hex.EncodeToString(fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].SideFiles[fileKey].FileData.MD5[:]))
+					tempFile.FileData.Sha1 = strings.ToUpper(hex.EncodeToString(fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].SideFiles[fileKey].FileData.SHA1[:]))
+					tempFile.FileData.Sha256 = strings.ToUpper(hex.EncodeToString(fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].SideFiles[fileKey].FileData.SHA256[:]))
 					tempFile.FileData.FileDataCrc = fdsArchives[key].ArchiveDisks[diskKey].DiskSides[sideKey].SideFiles[fileKey].FileData.FileDataCRC
 
 					tempSide.FDSFile = append(tempSide.FDSFile, tempFile)
@@ -632,25 +653,25 @@ func UnmarshalXMLToROMMap(xmlPayload string, enableInes bool, preserveTrainer bo
 	romMap := make(map[[32]byte]*NES20Tool.NESROM)
 	archiveMap := make(map[[32]byte]*FDSTool.FDSArchiveFile)
 
-	for index, _ := range xmlStruct.XMLROMs {
+	for index := range xmlStruct.XMLROMs {
 		tempRom := &NES20Tool.NESROM{}
 
-		crc32Bytes, err := hex.DecodeString(xmlStruct.XMLROMs[index].Crc32)
+		crc32Bytes, err := hex.DecodeString(strings.ToLower(xmlStruct.XMLROMs[index].Crc32))
 		if err == nil {
 			tempRom.CRC32 = binary.BigEndian.Uint32(crc32Bytes)
 		}
 
-		md5Bytes, err := hex.DecodeString(xmlStruct.XMLROMs[index].Md5)
+		md5Bytes, err := hex.DecodeString(strings.ToLower(xmlStruct.XMLROMs[index].Md5))
 		if err == nil {
 			copy(tempRom.MD5[:], md5Bytes)
 		}
 
-		sha1Bytes, err := hex.DecodeString(xmlStruct.XMLROMs[index].Sha1)
+		sha1Bytes, err := hex.DecodeString(strings.ToLower(xmlStruct.XMLROMs[index].Sha1))
 		if err == nil {
 			copy(tempRom.SHA1[:], sha1Bytes)
 		}
 
-		sha256Bytes, err := hex.DecodeString(xmlStruct.XMLROMs[index].Sha256)
+		sha256Bytes, err := hex.DecodeString(strings.ToLower(xmlStruct.XMLROMs[index].Sha256))
 		if err == nil {
 			copy(tempRom.SHA256[:], sha256Bytes)
 		}
@@ -665,7 +686,7 @@ func UnmarshalXMLToROMMap(xmlPayload string, enableInes bool, preserveTrainer bo
 		}
 
 		if preserveTrainer && xmlStruct.XMLROMs[index].TrainerData.Text != "" {
-			trainerDataBytes, err := hex.DecodeString(xmlStruct.XMLROMs[index].TrainerData.Text)
+			trainerDataBytes, err := hex.DecodeString(strings.ToLower(xmlStruct.XMLROMs[index].TrainerData.Text))
 			if err == nil {
 				tempRom.TrainerData = trainerDataBytes
 			}
@@ -677,16 +698,34 @@ func UnmarshalXMLToROMMap(xmlPayload string, enableInes bool, preserveTrainer bo
 
 			if xmlStruct.XMLROMs[index].Header20.Prgrom.Size > 0 {
 				tempRom.Header20.PRGROMSize = xmlStruct.XMLROMs[index].Header20.Prgrom.Size
+
+				tempRom.Header20.PRGROMCalculatedSize = 16 * 1024 * uint32(tempRom.Header20.PRGROMSize)
 			} else {
 				tempRom.Header20.PRGROMSizeExponent = xmlStruct.XMLROMs[index].Header20.Prgrom.SizeExponent
 				tempRom.Header20.PRGROMSizeMultiplier = xmlStruct.XMLROMs[index].Header20.Prgrom.SizeMultiplier
+
+				tempRom.Header20.PRGROMCalculatedSize = (2 << tempRom.Header20.PRGROMSizeExponent) * uint32((tempRom.Header20.PRGROMSizeMultiplier * 2) + 1)
+			}
+
+			prgRomSum16Bytes, err := hex.DecodeString(strings.ToLower(xmlStruct.XMLROMs[index].Header20.Prgrom.Sum16))
+			if err == nil {
+				tempRom.Header20.PRGROMSum16 = binary.BigEndian.Uint16(prgRomSum16Bytes)
+			}
+
+			chrRomSum16Bytes, err := hex.DecodeString(strings.ToLower(xmlStruct.XMLROMs[index].Header20.Chrrom.Sum16))
+			if err == nil {
+				tempRom.Header20.CHRROMSum16 = binary.BigEndian.Uint16(chrRomSum16Bytes)
 			}
 
 			if xmlStruct.XMLROMs[index].Header20.Chrrom.Size > 0 {
 				tempRom.Header20.CHRROMSize = xmlStruct.XMLROMs[index].Header20.Chrrom.Size
+
+				tempRom.Header20.CHRROMCalculatedSize = 8 * 1024 * uint32(tempRom.Header20.CHRROMSize)
 			} else {
 				tempRom.Header20.CHRROMSizeExponent = xmlStruct.XMLROMs[index].Header20.Chrrom.SizeExponent
 				tempRom.Header20.CHRROMSizeMultiplier = xmlStruct.XMLROMs[index].Header20.Chrrom.SizeMultiplier
+
+				tempRom.Header20.CHRROMCalculatedSize = (2 << tempRom.Header20.CHRROMSizeExponent) * uint32((tempRom.Header20.CHRROMSizeMultiplier * 2) + 1)
 			}
 
 			tempRom.Header20.PRGRAMSize = xmlStruct.XMLROMs[index].Header20.Prgram.Size
@@ -713,7 +752,20 @@ func UnmarshalXMLToROMMap(xmlPayload string, enableInes bool, preserveTrainer bo
 			tempRom.Header10 = tempRomHeader10
 
 			tempRom.Header10.PRGROMSize = xmlStruct.XMLROMs[index].Header10.Prgrom.Size
+			tempRom.Header10.PRGROMCalculatedSize = 16 * 1024 * uint32(tempRom.Header10.PRGROMSize)
 			tempRom.Header10.CHRROMSize = xmlStruct.XMLROMs[index].Header10.Chrrom.Size
+			tempRom.Header10.CHRROMCalculatedSize = 8 * 1024 * uint32(tempRom.Header10.CHRROMSize)
+
+			prgRomSum16Bytes, err := hex.DecodeString(strings.ToLower(xmlStruct.XMLROMs[index].Header10.Prgrom.Sum16))
+			if err == nil {
+				tempRom.Header10.PRGROMSum16 = binary.BigEndian.Uint16(prgRomSum16Bytes)
+			}
+
+			chrRomSum16Bytes, err := hex.DecodeString(strings.ToLower(xmlStruct.XMLROMs[index].Header10.Chrrom.Sum16))
+			if err == nil {
+				tempRom.Header10.CHRROMSum16 = binary.BigEndian.Uint16(chrRomSum16Bytes)
+			}
+
 			tempRom.Header10.MirroringType = xmlStruct.XMLROMs[index].Header10.MirroringType.Value
 			tempRom.Header10.Battery = xmlStruct.XMLROMs[index].Header10.Battery.Value
 			tempRom.Header10.Trainer = xmlStruct.XMLROMs[index].Header10.Trainer.Value
@@ -740,38 +792,38 @@ func UnmarshalXMLToROMMap(xmlPayload string, enableInes bool, preserveTrainer bo
 				tempArchive.RelativePath = tempRelativePath
 			}
 
-			for diskKey, _ := range xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk {
+			for diskKey := range xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk {
 				tempDisk := &FDSTool.FDSDisk{}
 				tempDisk.DiskNumber = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].DiskNumber
 
-				for sideKey, _ := range xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide {
+				for sideKey := range xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide {
 					tempSide := &FDSTool.FDSSide{}
 
 					tempSide.Size = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].Size
 
-					sideCrc32Bytes, err := hex.DecodeString(xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].Crc32)
+					sideCrc32Bytes, err := hex.DecodeString(strings.ToLower(xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].Crc32))
 					if err == nil {
 						tempSide.CRC32 = binary.BigEndian.Uint32(sideCrc32Bytes)
 					}
 
-					sideMd5Bytes, err := hex.DecodeString(xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].Md5)
+					sideMd5Bytes, err := hex.DecodeString(strings.ToLower(xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].Md5))
 					if err == nil {
 						copy(tempSide.MD5[:], sideMd5Bytes)
 					}
 
-					sideSha1Bytes, err := hex.DecodeString(xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].Sha1)
+					sideSha1Bytes, err := hex.DecodeString(strings.ToLower(xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].Sha1))
 					if err == nil {
 						copy(tempSide.SHA1[:], sideSha1Bytes)
 					}
 
-					sideSha256Bytes, err := hex.DecodeString(xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].Sha256)
+					sideSha256Bytes, err := hex.DecodeString(strings.ToLower(xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].Sha256))
 					if err == nil {
 						copy(tempSide.SHA256[:], sideSha256Bytes)
 					}
 
 					tempSide.ManufacturerCode = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].ManufacturerCode.Value
 
-					fdsGameNameString, err := hex.DecodeString(xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].FdsGameName.Value)
+					fdsGameNameString, err := hex.DecodeString(strings.ToLower(xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].FdsGameName.Value))
 					if err == nil {
 						tempSide.FDSGameName = string(fdsGameNameString)
 					}
@@ -789,7 +841,7 @@ func UnmarshalXMLToROMMap(xmlPayload string, enableInes bool, preserveTrainer bo
 					tempSide.Byte1D = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].Byte1d.Value
 					tempSide.Byte1E = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].Byte1e.Value
 
-					sideManufacturingDateBytes, err := hex.DecodeString(xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].ManufacturingDate.Value)
+					sideManufacturingDateBytes, err := hex.DecodeString(strings.ToLower(xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].ManufacturingDate.Value))
 					if err == nil {
 						tempSide.ManufacturingDate = sideManufacturingDateBytes
 					}
@@ -805,7 +857,7 @@ func UnmarshalXMLToROMMap(xmlPayload string, enableInes bool, preserveTrainer bo
 					tempSide.Byte2A = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].Byte2a.Value
 					tempSide.Byte2B = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].Byte2b.Value
 
-					sideRewriteDateBytes, err := hex.DecodeString(xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].RewriteDate.Value)
+					sideRewriteDateBytes, err := hex.DecodeString(strings.ToLower(xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].RewriteDate.Value))
 					if err == nil {
 						tempSide.RewriteDate = sideRewriteDateBytes
 					}
@@ -822,12 +874,12 @@ func UnmarshalXMLToROMMap(xmlPayload string, enableInes bool, preserveTrainer bo
 					tempSide.FileTableCRC = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].FileTableCrc.Value
 					tempSide.UnallocatedSpaceOffset = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].UnallocatedSpaceOffset.Value
 
-					sideUnallocatedSpaceBytes, err := hex.DecodeString(xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].UnallocatedSpace.Text)
+					sideUnallocatedSpaceBytes, err := hex.DecodeString(strings.ToLower(xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].UnallocatedSpace.Text))
 					if err == nil {
 						tempSide.UnallocatedSpace = sideUnallocatedSpaceBytes
 					}
 
-					for fileKey, _ := range xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].FDSFile {
+					for fileKey := range xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].FDSFile {
 						tempFile := &FDSTool.FDSFile{}
 
 						tempFile.FileNumber = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].FDSFile[fileKey].FileNumber.Value
@@ -841,22 +893,22 @@ func UnmarshalXMLToROMMap(xmlPayload string, enableInes bool, preserveTrainer bo
 						tempFileData := &FDSTool.FDSFileData{}
 
 						tempFileData.Size = xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].FDSFile[fileKey].FileData.Size
-						fileDataCrc32Bytes, err := hex.DecodeString(xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].FDSFile[fileKey].FileData.Crc32)
+						fileDataCrc32Bytes, err := hex.DecodeString(strings.ToLower(xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].FDSFile[fileKey].FileData.Crc32))
 						if err == nil {
 							tempFileData.CRC32 = binary.BigEndian.Uint32(fileDataCrc32Bytes)
 						}
 
-						fileDataMd5Bytes, err := hex.DecodeString(xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].FDSFile[fileKey].FileData.Md5)
+						fileDataMd5Bytes, err := hex.DecodeString(strings.ToLower(xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].FDSFile[fileKey].FileData.Md5))
 						if err == nil {
 							copy(tempFileData.MD5[:], fileDataMd5Bytes)
 						}
 
-						fileDataSha1Bytes, err := hex.DecodeString(xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].FDSFile[fileKey].FileData.Sha1)
+						fileDataSha1Bytes, err := hex.DecodeString(strings.ToLower(xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].FDSFile[fileKey].FileData.Sha1))
 						if err == nil {
 							copy(tempFileData.SHA1[:], fileDataSha1Bytes)
 						}
 
-						fileDataSha256Bytes, err := hex.DecodeString(xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].FDSFile[fileKey].FileData.Sha256)
+						fileDataSha256Bytes, err := hex.DecodeString(strings.ToLower(xmlStruct.XMLROMs[index].FDSArchive.FDSArchiveDisk[diskKey].FDSSide[sideKey].FDSFile[fileKey].FileData.Sha256))
 						if err == nil {
 							copy(tempFileData.SHA256[:], fileDataSha256Bytes)
 						}

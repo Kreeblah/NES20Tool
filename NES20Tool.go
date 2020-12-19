@@ -36,6 +36,7 @@ func main() {
 	romSetGenerateFDSCRCs := flag.Bool("generate-fds-crcs", false, "Generate FDS CRCs for data chunks.  Few, if any, emulators use these.")
 	romSetCommand := flag.String("operation", "", "Operation to perform on the ROM set.  {read|write}")
 	romSetOrganization := flag.Bool("organization", false, "Read/write relative file location information for automatic organization.")
+	truncateRoms := flag.Bool("truncate-roms", false, "Truncate PRGROM and CHRROM to the sizes specified in the header")
 	romSetPreserveTrainers := flag.Bool("preserve-trainers", false, "Preserve trainers in read/write process.")
 	romBasePath := flag.String("rom-base-path", "", "The path to use for writing organized roms.")
 	romSetSourceDirectory := flag.String("rom-source-path", "", "The path to a directory with NES ROMs to use for the operation.")
@@ -114,7 +115,7 @@ func main() {
 				}
 			}
 
-			for key, _ := range rawRoms {
+			for key := range rawRoms {
 				println("Checking ROM: " + rawRoms[key].Filename)
 				if romData[rawRoms[key].SHA256] != nil {
 					println("Matched ROM: " + romData[rawRoms[key].SHA256].Name)
@@ -131,7 +132,7 @@ func main() {
 						}
 
 						rawRoms[key].Header20 = romData[rawRoms[key].SHA256].Header20
-						err = FileTools.WriteROM(rawRoms[key], *romSetEnableV1, *romSetPreserveTrainers, *romBasePath)
+						err = FileTools.WriteROM(rawRoms[key], *romSetEnableV1, *truncateRoms, *romSetPreserveTrainers, *romBasePath)
 						if err != nil {
 							if *romBasePath == "" {
 								println("Error writing ROM: " + rawRoms[key].Filename)
@@ -153,7 +154,7 @@ func main() {
 						}
 
 						rawRoms[key].Header10 = romData[rawRoms[key].SHA256].Header10
-						err = FileTools.WriteROM(rawRoms[key], *romSetEnableV1, *romSetPreserveTrainers, *romBasePath)
+						err = FileTools.WriteROM(rawRoms[key], *romSetEnableV1, *truncateRoms, *romSetPreserveTrainers, *romBasePath)
 						if err != nil {
 							if *romBasePath == "" {
 								println("Error writing ROM: " + rawRoms[key].Filename)
@@ -178,7 +179,7 @@ func main() {
 			}
 
 			if *romSetEnableFDS {
-				for key, _ := range rawArchives {
+				for key := range rawArchives {
 					println("Checking archive: " + rawArchives[key].Filename)
 
 					//TODO: Find a better way of matching these

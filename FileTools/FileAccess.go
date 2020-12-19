@@ -205,7 +205,7 @@ func LoadROMRecursiveMap(path string, enableInes bool, preserveTrainers bool) (m
 
 	romMap := make(map[[32]byte]*NES20Tool.NESROM)
 
-	for index, _ := range romSlice {
+	for index := range romSlice {
 		if romMap[romSlice[index].SHA256] == nil {
 			romMap[romSlice[index].SHA256] = romSlice[index]
 		}
@@ -227,7 +227,7 @@ func LoadFDSArchiveRecursiveMap(path string, generateChecksums bool) (map[[32]by
 	}
 
 	archiveMap := make(map[[32]byte]*FDSTool.FDSArchiveFile)
-	for index, _ := range archiveSlice {
+	for index := range archiveSlice {
 		if archiveMap[archiveSlice[index].SHA256] == nil {
 			archiveMap[archiveSlice[index].SHA256] = archiveSlice[index]
 		}
@@ -236,8 +236,8 @@ func LoadFDSArchiveRecursiveMap(path string, generateChecksums bool) (map[[32]by
 	return archiveMap, nil
 }
 
-func WriteROM(romModel *NES20Tool.NESROM, enableInes bool, preserveTrainer bool, destinationBasePath string) error {
-	nesRomBytes, err := NES20Tool.EncodeNESROM(romModel, enableInes, preserveTrainer)
+func WriteROM(romModel *NES20Tool.NESROM, enableInes bool, truncateRom bool, preserveTrainer bool, destinationBasePath string) error {
+	nesRomBytes, err := NES20Tool.EncodeNESROM(romModel, enableInes, truncateRom, preserveTrainer)
 	if err != nil {
 		return err
 	}
