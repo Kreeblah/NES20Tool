@@ -338,7 +338,7 @@ func EncodeNESROM(romModel *NESROM, enableInes bool, truncateRom bool, preserveT
 			Flag6Byte = Flag6Byte | 0b00000010
 		}
 
-		if romModel.Header20.Trainer && preserveTrainer {
+		if preserveTrainer && romModel.Header20.Trainer && len(romModel.TrainerData) == 512 {
 			Flag6Byte = Flag6Byte | 0b00000100
 		}
 
@@ -402,7 +402,7 @@ func EncodeNESROM(romModel *NESROM, enableInes bool, truncateRom bool, preserveT
 			Flag6Byte = Flag6Byte | 0b00000010
 		}
 
-		if romModel.Header10.Trainer && preserveTrainer {
+		if preserveTrainer && romModel.Header10.Trainer && len(romModel.TrainerData) == 512 {
 			Flag6Byte = Flag6Byte | 0b00000100
 		}
 
@@ -444,7 +444,7 @@ func EncodeNESROM(romModel *NESROM, enableInes bool, truncateRom bool, preserveT
 
 	romBytes := headerBytes
 
-	if !preserveTrainer {
+	if !preserveTrainer || len(romModel.TrainerData) != 512 {
 		romBytes = append(romBytes, rawRomBytes...)
 	} else {
 		romBytes = append(romBytes, romModel.TrainerData...)
