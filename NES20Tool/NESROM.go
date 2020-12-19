@@ -37,11 +37,19 @@ type NES20Header struct {
 	PRGROMSize           uint16
 	PRGROMCalculatedSize uint32
 	PRGROMSum16          uint16
+	PRGROMCRC32          uint32
+	PRGROMMD5            [16]byte
+	PRGROMSHA1           [20]byte
+	PRGROMSHA256         [32]byte
 	PRGROMSizeExponent   uint8
 	PRGROMSizeMultiplier uint8
 	CHRROMSize           uint16
 	CHRROMCalculatedSize uint32
 	CHRROMSum16          uint16
+	CHRROMCRC32          uint32
+	CHRROMMD5            [16]byte
+	CHRROMSHA1           [20]byte
+	CHRROMSHA256         [32]byte
 	CHRROMSizeExponent   uint8
 	CHRROMSizeMultiplier uint8
 	PRGRAMSize           uint8
@@ -64,20 +72,28 @@ type NES20Header struct {
 }
 
 type NES10Header struct {
-	PRGROMSize    uint8
+	PRGROMSize           uint8
 	PRGROMCalculatedSize uint32
-	PRGROMSum16 uint16
-	CHRROMSize    uint8
+	PRGROMSum16          uint16
+	PRGROMCRC32          uint32
+	PRGROMMD5            [16]byte
+	PRGROMSHA1           [20]byte
+	PRGROMSHA256         [32]byte
+	CHRROMSize           uint8
 	CHRROMCalculatedSize uint32
-	CHRROMSum16 uint16
-	MirroringType bool
-	Battery       bool
-	Trainer       bool
-	FourScreen    bool
-	Mapper        uint8
-	VsUnisystem   bool
-	PRGRAMSize    uint8
-	TVSystem      bool
+	CHRROMSum16          uint16
+	CHRROMCRC32          uint32
+	CHRROMMD5            [16]byte
+	CHRROMSHA1           [20]byte
+	CHRROMSHA256         [32]byte
+	MirroringType        bool
+	Battery              bool
+	Trainer              bool
+	FourScreen           bool
+	Mapper               uint8
+	VsUnisystem          bool
+	PRGRAMSize           uint8
+	TVSystem             bool
 }
 
 type NESROM struct {
@@ -93,6 +109,8 @@ type NESROM struct {
 	Header10     *NES10Header
 	ROMData      []byte
 	TrainerData  []byte
+	PRGROMData   []byte
+	CHRROMData   []byte
 }
 
 type NESROMError struct {
@@ -141,7 +159,7 @@ func DecodeNESROM(inputFile []byte, enableInes bool, preserveTrainer bool, relat
 	header20Data := &NES20Header{}
 
 	if headerVersion == 2 {
-		if inputFile[9]&0b00001111 != 0b00001111 {
+		if inputFile[9] & 0b00001111 != 0b00001111 {
 			PRGROMBytes := make([]byte, 2)
 			PRGROMBytes[0] = inputFile[4]
 			PRGROMBytes[1] = inputFile[9] & 0b00001111
@@ -150,10 +168,10 @@ func DecodeNESROM(inputFile []byte, enableInes bool, preserveTrainer bool, relat
 		} else {
 			header20Data.PRGROMSizeExponent = (inputFile[4] & 0b11111100) >> 2
 			header20Data.PRGROMSizeMultiplier = inputFile[4] & 0b00000011
-			header20Data.PRGROMCalculatedSize = (2 << header20Data.PRGROMSizeExponent) * uint32((header20Data.PRGROMSizeMultiplier * 2) + 1)
+			header20Data.PRGROMCalculatedSize = (1 << header20Data.PRGROMSizeExponent) * uint32((header20Data.PRGROMSizeMultiplier*2)+1)
 		}
 
-		if inputFile[9]&0b11110000 != 0b11110000 {
+		if inputFile[9] & 0b11110000 != 0b11110000 {
 			CHRROMBytes := make([]byte, 2)
 			CHRROMBytes[0] = inputFile[5]
 			CHRROMBytes[1] = (inputFile[9] & 0b11110000) >> 4
@@ -162,16 +180,35 @@ func DecodeNESROM(inputFile []byte, enableInes bool, preserveTrainer bool, relat
 		} else {
 			header20Data.CHRROMSizeExponent = (inputFile[5] & 0b11111100) >> 2
 			header20Data.CHRROMSizeMultiplier = inputFile[5] & 0b00000011
-			header20Data.CHRROMCalculatedSize = (2 << header20Data.CHRROMSizeExponent) * uint32((header20Data.CHRROMSizeMultiplier * 2) + 1)
+			header20Data.CHRROMCalculatedSize = (1 << header20Data.CHRROMSizeExponent) * uint32((header20Data.CHRROMSizeMultiplier*2)+1)
 		}
 
-		prgRomSum16, chrRomSum16, err := calculateSum16(romData.ROMData, header20Data.PRGROMCalculatedSize, header20Data.CHRROMCalculatedSize)
+		prgRomData, chrRomData, err := getPrgRomAndChrRomData(romData.ROMData, header20Data.PRGROMCalculatedSize, header20Data.CHRROMCalculatedSize)
+		if err != nil {
+			return romData, err
+		}
+
+		prgRomSum16, err := calculateSum16(prgRomData)
+		if err != nil {
+			return romData, err
+		}
+
+		chrRomSum16, err := calculateSum16(chrRomData)
 		if err != nil {
 			return romData, err
 		}
 
 		header20Data.PRGROMSum16 = prgRomSum16
+		header20Data.PRGROMCRC32 = crc32.ChecksumIEEE(prgRomData)
+		header20Data.PRGROMMD5 = md5.Sum(prgRomData)
+		header20Data.PRGROMSHA1 = sha1.Sum(prgRomData)
+		header20Data.PRGROMSHA256 = sha256.Sum256(prgRomData)
+
 		header20Data.CHRROMSum16 = chrRomSum16
+		header20Data.CHRROMCRC32 = crc32.ChecksumIEEE(chrRomData)
+		header20Data.CHRROMMD5 = md5.Sum(chrRomData)
+		header20Data.CHRROMSHA1 = sha1.Sum(chrRomData)
+		header20Data.CHRROMSHA256 = sha256.Sum256(chrRomData)
 
 		header20Data.PRGRAMSize = inputFile[10] & 0b00001111
 		header20Data.PRGNVRAMSize = (inputFile[10] & 0b11110000) >> 4
@@ -226,13 +263,32 @@ func DecodeNESROM(inputFile []byte, enableInes bool, preserveTrainer bool, relat
 		header10Data.CHRROMSize = inputFile[5]
 		header10Data.CHRROMCalculatedSize = 8 * 1024 * uint32(header10Data.CHRROMSize)
 
-		prgRomSum16, chrRomSum16, err := calculateSum16(romData.ROMData, header10Data.PRGROMCalculatedSize, header10Data.CHRROMCalculatedSize)
+		prgRomData, chrRomData, err := getPrgRomAndChrRomData(romData.ROMData, header10Data.PRGROMCalculatedSize, header10Data.CHRROMCalculatedSize)
+		if err != nil {
+			return romData, err
+		}
+
+		prgRomSum16, err := calculateSum16(prgRomData)
+		if err != nil {
+			return romData, err
+		}
+
+		chrRomSum16, err := calculateSum16(chrRomData)
 		if err != nil {
 			return romData, err
 		}
 
 		header10Data.PRGROMSum16 = prgRomSum16
+		header10Data.PRGROMCRC32 = crc32.ChecksumIEEE(prgRomData)
+		header10Data.PRGROMMD5 = md5.Sum(prgRomData)
+		header10Data.PRGROMSHA1 = sha1.Sum(prgRomData)
+		header10Data.PRGROMSHA256 = sha256.Sum256(prgRomData)
+
 		header10Data.CHRROMSum16 = chrRomSum16
+		header10Data.CHRROMCRC32 = crc32.ChecksumIEEE(chrRomData)
+		header10Data.CHRROMMD5 = md5.Sum(chrRomData)
+		header10Data.CHRROMSHA1 = sha1.Sum(chrRomData)
+		header10Data.CHRROMSHA256 = sha256.Sum256(chrRomData)
 
 		header10Data.MirroringType = (inputFile[6] & 0b00000001) == 0b00000001
 		header10Data.Battery = (inputFile[6] & 0b00000010) == 0b00000010
@@ -354,7 +410,7 @@ func EncodeNESROM(romModel *NESROM, enableInes bool, truncateRom bool, preserveT
 		headerBytes[15] = 0b00111111 & romModel.Header20.DefaultExpansion
 
 		if truncateRom {
-			rawRomBytes = romModel.ROMData[0 : (romModel.Header20.PRGROMCalculatedSize + romModel.Header20.CHRROMCalculatedSize)]
+			rawRomBytes = romModel.ROMData[0:(romModel.Header20.PRGROMCalculatedSize + romModel.Header20.CHRROMCalculatedSize)]
 		} else {
 			rawRomBytes = romModel.ROMData
 		}
@@ -404,8 +460,8 @@ func EncodeNESROM(romModel *NESROM, enableInes bool, truncateRom bool, preserveT
 		headerBytes[14] = 0
 		headerBytes[15] = 0
 
-		if truncateRom {
-			rawRomBytes = romModel.ROMData[0 : (romModel.Header10.PRGROMCalculatedSize + romModel.Header10.CHRROMCalculatedSize)]
+		if truncateRom && romModel.Header20.MiscROMs == 0 {
+			rawRomBytes = romModel.ROMData[0:(romModel.Header10.PRGROMCalculatedSize + romModel.Header10.CHRROMCalculatedSize)]
 		} else {
 			rawRomBytes = romModel.ROMData
 		}
@@ -446,31 +502,17 @@ func getStrippedRom(inputFile []byte) ([]byte, []byte, error) {
 	}
 }
 
-func calculateSum16(inputData []byte, prgRomSize uint32, chrRomSize uint32) (uint16, uint16, error) {
+func calculateSum16(inputData []byte) (uint16, error) {
 	if inputData == nil {
-		return 0, 0, &NESROMError{text: "Cannot calculate sum16 for a null segment."}
+		return 0, &NESROMError{text: "Cannot calculate sum16 for a null segment."}
 	}
 
-	if len(inputData) < int(prgRomSize + chrRomSize) {
-		return 0, 0, &NESROMError{text: "Invalid PRGROM and/or CHRROM size(s) detected during sum16 calculation."}
+	var byteSum uint64 = 0
+	for i := range inputData {
+		byteSum = byteSum + uint64(inputData[i])
 	}
 
-	prgRomData, chrRomData, err := getPrgRomAndChrRomData(inputData, prgRomSize, chrRomSize)
-	if err != nil {
-		return 0, 0, err
-	}
-
-	var prgRomByteSum uint64 = 0
-	for i := range prgRomData {
-		prgRomByteSum = prgRomByteSum + uint64(prgRomData[i])
-	}
-
-	var chrRomByteSum uint64 = 0
-	for i := range chrRomData {
-		chrRomByteSum = chrRomByteSum + uint64(chrRomData[i])
-	}
-
-	return uint16(prgRomByteSum), uint16(chrRomByteSum), nil
+	return uint16(byteSum), nil
 }
 
 func getPrgRomAndChrRomData(inputData []byte, prgRomSize uint32, chrRomSize uint32) ([]byte, []byte, error) {
@@ -478,12 +520,12 @@ func getPrgRomAndChrRomData(inputData []byte, prgRomSize uint32, chrRomSize uint
 		return nil, nil, &NESROMError{text: "Cannot extract PRGROM and/or CHRROM data from a null segment."}
 	}
 
-	if len(inputData) < int(prgRomSize + chrRomSize) {
+	if len(inputData) < int(prgRomSize+chrRomSize) {
 		return nil, nil, &NESROMError{text: "Invalid PRGROM and/or CHRROM size(s) detected during extraction."}
 	}
 
-	prgRomData := inputData[0 : prgRomSize]
-	chrRomData := inputData[prgRomSize : (prgRomSize + chrRomSize)]
+	prgRomData := inputData[0:prgRomSize]
+	chrRomData := inputData[prgRomSize:(prgRomSize + chrRomSize)]
 
 	return prgRomData, chrRomData, nil
 }

@@ -22,6 +22,7 @@ import (
 	"NES20Tool/FDSTool"
 	"NES20Tool/NES20Tool"
 	"bufio"
+	"errors"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -34,7 +35,13 @@ func LoadFile(fileName string, basePath string) ([]byte, string, error) {
 	if err != nil {
 		return nil, "", err
 	}
-	defer f.Close()
+
+	defer func() {
+		err := f.Close()
+		if err != nil {
+			panic(errors.New("Unable to close file: " + fileName))
+		}
+	}()
 
 	stats, err := f.Stat()
 	if err != nil {
@@ -251,7 +258,14 @@ func WriteROM(romModel *NES20Tool.NESROM, enableInes bool, truncateRom bool, pre
 		}
 		tempRomPath = tempRomPath + romModel.RelativePath
 		directoryPath := tempRomPath[0:strings.LastIndex(tempRomPath, string(os.PathSeparator))]
-		os.MkdirAll(directoryPath, os.ModeDir|0770)
+
+		defer func() {
+			err := os.MkdirAll(directoryPath, os.ModeDir|0770)
+			if err != nil {
+				panic(errors.New("Unable to create directory: " + directoryPath))
+			}
+		}()
+
 		return ioutil.WriteFile(tempRomPath, nesRomBytes, 0644)
 	}
 }
@@ -271,7 +285,14 @@ func WriteFDSArchive(archiveModel *FDSTool.FDSArchiveFile, writeFDSHeader bool, 
 		}
 		tempRomPath = tempRomPath + archiveModel.RelativePath
 		directoryPath := tempRomPath[0:strings.LastIndex(tempRomPath, string(os.PathSeparator))]
-		os.MkdirAll(directoryPath, os.ModeDir|0770)
+
+		defer func() {
+			err := os.MkdirAll(directoryPath, os.ModeDir|0770)
+			if err != nil {
+				panic(errors.New("Unable to create directory: " + directoryPath))
+			}
+		}()
+
 		return ioutil.WriteFile(tempRomPath, fdsArchiveBytes, 0644)
 	}
 }
