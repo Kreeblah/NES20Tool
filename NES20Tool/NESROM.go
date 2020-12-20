@@ -28,17 +28,17 @@ import (
 )
 
 var (
-	NES_HEADER_MAGIC              = "\x4e\x45\x53\x1a"
-	NES_20_AND_MASK               = byte(0x08)
-	NES_20_OR_MASK                = byte(0xFB)
-	ROM_TYPE_PRGROM               = 0
-	ROM_TYPE_CHRROM               = 1
-	PRG_CANONICAL_SIZE_ROM        = 0
-	PRG_CANONICAL_SIZE_CALCULATED = 1
-	PRG_CANONICAL_SIZE_FACTORED   = 2
-	CHR_CANONICAL_SIZE_ROM        = 0
-	CHR_CANONICAL_SIZE_CALCULATED = 1
-	CHR_CANONICAL_SIZE_FACTORED   = 2
+	NES_HEADER_MAGIC                     = "\x4e\x45\x53\x1a"
+	NES_20_AND_MASK                      = byte(0x08)
+	NES_20_OR_MASK                       = byte(0xFB)
+	ROM_TYPE_PRGROM               uint64 = 0
+	ROM_TYPE_CHRROM               uint64 = 1
+	PRG_CANONICAL_SIZE_ROM        uint64 = 0
+	PRG_CANONICAL_SIZE_CALCULATED uint64 = 1
+	PRG_CANONICAL_SIZE_FACTORED   uint64 = 2
+	CHR_CANONICAL_SIZE_ROM        uint64 = 0
+	CHR_CANONICAL_SIZE_CALCULATED uint64 = 1
+	CHR_CANONICAL_SIZE_FACTORED   uint64 = 2
 )
 
 type NES20Header struct {
@@ -454,7 +454,7 @@ func EncodeNESROM(romModel *NESROM, enableInes bool, truncateRom bool, preserveT
 	return romBytes, nil
 }
 
-func FactorRomSize(romSize uint64, romType int) (uint16, uint8, uint8) {
+func FactorRomSize(romSize uint64, romType uint64) (uint16, uint8, uint8) {
 	var blockSize uint64
 	var sizeExponent uint8
 	var sizeMultiplier uint8
@@ -494,7 +494,7 @@ func FactorRomSize(romSize uint64, romType int) (uint16, uint8, uint8) {
 	return 0, sizeExponent, sizeMultiplier
 }
 
-func UpdateSizes(nesRom *NESROM, prgCanonicalSize int, chrCanonicalSize int) error {
+func UpdateSizes(nesRom *NESROM, prgCanonicalSize uint64, chrCanonicalSize uint64) error {
 	if nesRom.ROMData != nil {
 		nesRom.Size = uint64(len(nesRom.ROMData))
 	}
@@ -619,6 +619,38 @@ func UpdateChecksums(nesRom *NESROM) error {
 	}
 
 	return nil
+}
+
+func TruncateROMDataAndSections(rom *NESROM) {
+	if rom.Header20 != nil {
+		if uint64(len(rom.PRGROMData)) > rom.Header20.PRGROMCalculatedSize {
+			rom.PRGROMData = rom.PRGROMData[:rom.Header20.PRGROMCalculatedSize]
+		}
+
+		if uint64(len(rom.CHRROMData)) > rom.Header20.CHRROMCalculatedSize {
+			rom.CHRROMData = rom.CHRROMData[:rom.Header20.CHRROMCalculatedSize]
+		}
+
+		rom.ROMData = rom.PRGROMData
+		rom.ROMData = append(rom.ROMData, rom.CHRROMData...)
+
+		return
+	}
+
+	if rom.Header10 != nil {
+		if uint64(len(rom.PRGROMData)) > rom.Header10.PRGROMCalculatedSize {
+			rom.PRGROMData = rom.PRGROMData[:rom.Header10.PRGROMCalculatedSize]
+		}
+
+		if uint64(len(rom.CHRROMData)) > rom.Header10.CHRROMCalculatedSize {
+			rom.CHRROMData = rom.CHRROMData[:rom.Header10.CHRROMCalculatedSize]
+		}
+
+		rom.ROMData = rom.PRGROMData
+		rom.ROMData = append(rom.ROMData, rom.CHRROMData...)
+
+		return
+	}
 }
 
 func getStrippedRom(inputFile []byte) ([]byte, []byte, error) {

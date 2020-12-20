@@ -29,16 +29,16 @@ import (
 )
 
 var (
-	FDS_SIDE_SIZE              = 65500
-	QD_SIDE_SIZE               = 65536
-	FDS_DISK_INFO_BLOCK        = 1
-	FDS_DISK_FILE_LAYOUT_BLOCK = 2
-	FDS_FILE_HEADER_BLOCK      = 3
-	FDS_FILE_DATA_BLOCK        = 4
-	FDS_EPOCH                  = 1925
-	FDS_HEADER_MAGIC           = "\x46\x44\x53\x1a"
-	FDS_HEADER_PADDING         = "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
-	FDS_MAGIC                  = "*NINTENDO-HVC*"
+	FDS_SIDE_SIZE              uint64 = 65500
+	QD_SIDE_SIZE               uint64 = 65536
+	FDS_DISK_INFO_BLOCK        uint64 = 1
+	FDS_DISK_FILE_LAYOUT_BLOCK uint64 = 2
+	FDS_FILE_HEADER_BLOCK      uint64 = 3
+	FDS_FILE_DATA_BLOCK        uint64 = 4
+	FDS_EPOCH                         = 1925
+	FDS_HEADER_MAGIC                  = "\x46\x44\x53\x1a"
+	FDS_HEADER_PADDING                = "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+	FDS_MAGIC                         = "*NINTENDO-HVC*"
 )
 
 type FDSArchiveFile struct {
@@ -570,7 +570,7 @@ func EncodeFDSSide(inputSide *FDSSide, writeChecksums bool, generateChecksums bo
 	}
 
 	sideSlice = append(sideSlice, unallocatedSpaceBytes...)
-	sideSliceLength := len(sideSlice)
+	sideSliceLength := uint64(len(sideSlice))
 
 	if writeQd {
 		if sideSliceLength < QD_SIDE_SIZE {
@@ -644,18 +644,18 @@ func GetStrippedDiskSideByteSlices(inputFile []byte) ([][]byte, error) {
 	}
 
 	if bytes.Compare(inputFile[0:4], []byte(FDS_HEADER_MAGIC)) == 0 {
-		if ((fileSize - 16) % FDS_SIDE_SIZE) != 0 {
-			if ((fileSize - 16) % QD_SIDE_SIZE) != 0 {
-				return nil, &FDSError{text: "File is not a valid FDS or QD archive.  " + strconv.Itoa(fileSize-16) + " should be divisible by " + strconv.Itoa(FDS_SIDE_SIZE) + " for an FDS archive or " + strconv.Itoa(QD_SIDE_SIZE) + " for a QD archive."}
+		if (uint64(fileSize-16) % FDS_SIDE_SIZE) != 0 {
+			if (uint64(fileSize-16) % QD_SIDE_SIZE) != 0 {
+				return nil, &FDSError{text: "File is not a valid FDS or QD archive.  " + strconv.Itoa(fileSize-16) + " should be divisible by " + strconv.FormatUint(FDS_SIDE_SIZE, 10) + " for an FDS archive or " + strconv.FormatUint(QD_SIDE_SIZE, 10) + " for a QD archive."}
 			} else {
 				isQd = true
 			}
 		}
 		return getDiskSideByteSlices(inputFile[16:fileSize], isQd)
 	} else {
-		if (fileSize % FDS_SIDE_SIZE) != 0 {
-			if (fileSize % QD_SIDE_SIZE) != 0 {
-				return nil, &FDSError{text: "File is not a valid FDS or QD archive.  " + strconv.Itoa(fileSize) + " should be divisible by " + strconv.Itoa(FDS_SIDE_SIZE) + " for an FDS archive or " + strconv.Itoa(QD_SIDE_SIZE) + " for a QD archive."}
+		if (uint64(fileSize) % FDS_SIDE_SIZE) != 0 {
+			if (uint64(fileSize) % QD_SIDE_SIZE) != 0 {
+				return nil, &FDSError{text: "File is not a valid FDS or QD archive.  " + strconv.Itoa(fileSize) + " should be divisible by " + strconv.FormatUint(FDS_SIDE_SIZE, 10) + " for an FDS archive or " + strconv.FormatUint(QD_SIDE_SIZE, 10) + " for a QD archive."}
 			} else {
 				isQd = true
 			}
@@ -670,13 +670,13 @@ func getDiskSideByteSlices(inputFile []byte, isQd bool) ([][]byte, error) {
 		sideSize = QD_SIDE_SIZE
 	}
 
-	archiveSize := len(inputFile)
+	archiveSize := uint64(len(inputFile))
 	archiveSides := archiveSize / sideSize
 
 	sideByteSlices := make([][]byte, 0)
 
-	for index := 0; index < archiveSides; index++ {
-		byteOffset := index * sideSize
+	for index := 0; uint64(index) < archiveSides; index++ {
+		byteOffset := uint64(index) * sideSize
 		if bytes.Compare(inputFile[byteOffset+1:byteOffset+15], []byte(FDS_MAGIC)) != 0 {
 			return nil, &FDSError{text: "Unable to identify side " + strconv.Itoa(index) + " as an FDS or QD disk side.  File is not a valid FDS or QD archive."}
 		}
