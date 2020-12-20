@@ -21,7 +21,10 @@ package FileTools
 import (
 	"NES20Tool/FDSTool"
 	"NES20Tool/NES20Tool"
+	"NES20Tool/ProcessingTools"
 	"bufio"
+	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"io/ioutil"
 	"os"
@@ -199,8 +202,8 @@ func LoadFDSArchiveRecursive(basePath string, generateChecksums bool) ([]*FDSToo
 	return archiveSlice, nil
 }
 
-func LoadROMRecursiveMap(path string, enableInes bool, preserveTrainers bool) (map[[32]byte]*NES20Tool.NESROM, error) {
-	romSlice, err := LoadROMRecursive(path, enableInes, preserveTrainers)
+func LoadROMRecursiveMap(basePath string, enableInes bool, preserveTrainers bool, hashTypes uint64) (map[string]*NES20Tool.NESROM, error) {
+	romSlice, err := LoadROMRecursive(basePath, enableInes, preserveTrainers)
 	if err != nil {
 		switch err.(type) {
 		case *NES20Tool.NESROMError:
@@ -210,11 +213,34 @@ func LoadROMRecursiveMap(path string, enableInes bool, preserveTrainers bool) (m
 		}
 	}
 
-	romMap := make(map[[32]byte]*NES20Tool.NESROM)
+	romMap := make(map[string]*NES20Tool.NESROM)
 
 	for index := range romSlice {
-		if romMap[romSlice[index].SHA256] == nil {
-			romMap[romSlice[index].SHA256] = romSlice[index]
+		if hashTypes&ProcessingTools.HASH_TYPE_SHA256 > 0 {
+			if romMap["SHA256:"+strings.ToUpper(hex.EncodeToString(romSlice[index].SHA256[:]))] == nil {
+				romMap["SHA256:"+strings.ToUpper(hex.EncodeToString(romSlice[index].SHA256[:]))] = romSlice[index]
+			}
+		}
+
+		if hashTypes&ProcessingTools.HASH_TYPE_SHA1 > 0 {
+			if romMap["SHA1:"+strings.ToUpper(hex.EncodeToString(romSlice[index].SHA1[:]))] == nil {
+				romMap["SHA1:"+strings.ToUpper(hex.EncodeToString(romSlice[index].SHA1[:]))] = romSlice[index]
+			}
+		}
+
+		if hashTypes&ProcessingTools.HASH_TYPE_MD5 > 0 {
+			if romMap["MD5:"+strings.ToUpper(hex.EncodeToString(romSlice[index].MD5[:]))] == nil {
+				romMap["MD5:"+strings.ToUpper(hex.EncodeToString(romSlice[index].MD5[:]))] = romSlice[index]
+			}
+		}
+
+		if hashTypes&ProcessingTools.HASH_TYPE_CRC32 > 0 {
+			testRomCrc32Bytes := make([]byte, 4)
+			binary.BigEndian.PutUint32(testRomCrc32Bytes, romSlice[index].CRC32)
+
+			if romMap["CRC32:"+strings.ToUpper(hex.EncodeToString(testRomCrc32Bytes))] == nil {
+				romMap["CRC32:"+strings.ToUpper(hex.EncodeToString(testRomCrc32Bytes))] = romSlice[index]
+			}
 		}
 	}
 
@@ -222,8 +248,8 @@ func LoadROMRecursiveMap(path string, enableInes bool, preserveTrainers bool) (m
 }
 
 //TODO: Determine a better way to identify duplicates based on archive/filesystem contents
-func LoadFDSArchiveRecursiveMap(path string, generateChecksums bool) (map[[32]byte]*FDSTool.FDSArchiveFile, error) {
-	archiveSlice, err := LoadFDSArchiveRecursive(path, generateChecksums)
+func LoadFDSArchiveRecursiveMap(basePath string, generateChecksums bool, hashTypes uint64) (map[string]*FDSTool.FDSArchiveFile, error) {
+	archiveSlice, err := LoadFDSArchiveRecursive(basePath, generateChecksums)
 	if err != nil {
 		switch err.(type) {
 		case *FDSTool.FDSError:
@@ -233,10 +259,33 @@ func LoadFDSArchiveRecursiveMap(path string, generateChecksums bool) (map[[32]by
 		}
 	}
 
-	archiveMap := make(map[[32]byte]*FDSTool.FDSArchiveFile)
+	archiveMap := make(map[string]*FDSTool.FDSArchiveFile)
 	for index := range archiveSlice {
-		if archiveMap[archiveSlice[index].SHA256] == nil {
-			archiveMap[archiveSlice[index].SHA256] = archiveSlice[index]
+		if hashTypes&ProcessingTools.HASH_TYPE_SHA256 > 0 {
+			if archiveMap["SHA256:"+strings.ToUpper(hex.EncodeToString(archiveSlice[index].SHA256[:]))] == nil {
+				archiveMap["SHA256:"+strings.ToUpper(hex.EncodeToString(archiveSlice[index].SHA256[:]))] = archiveSlice[index]
+			}
+		}
+
+		if hashTypes&ProcessingTools.HASH_TYPE_SHA1 > 0 {
+			if archiveMap["SHA1:"+strings.ToUpper(hex.EncodeToString(archiveSlice[index].SHA1[:]))] == nil {
+				archiveMap["SHA1:"+strings.ToUpper(hex.EncodeToString(archiveSlice[index].SHA1[:]))] = archiveSlice[index]
+			}
+		}
+
+		if hashTypes&ProcessingTools.HASH_TYPE_MD5 > 0 {
+			if archiveMap["MD5:"+strings.ToUpper(hex.EncodeToString(archiveSlice[index].MD5[:]))] == nil {
+				archiveMap["MD5:"+strings.ToUpper(hex.EncodeToString(archiveSlice[index].MD5[:]))] = archiveSlice[index]
+			}
+		}
+
+		if hashTypes&ProcessingTools.HASH_TYPE_CRC32 > 0 {
+			testRomCrc32Bytes := make([]byte, 4)
+			binary.BigEndian.PutUint32(testRomCrc32Bytes, archiveSlice[index].CRC32)
+
+			if archiveMap["CRC32:"+strings.ToUpper(hex.EncodeToString(testRomCrc32Bytes))] == nil {
+				archiveMap["CRC32:"+strings.ToUpper(hex.EncodeToString(testRomCrc32Bytes))] = archiveSlice[index]
+			}
 		}
 	}
 

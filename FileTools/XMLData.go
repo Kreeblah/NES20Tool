@@ -410,7 +410,7 @@ type FDSFileXMLFields struct {
 	} `xml:"fileData"`
 }
 
-func MarshalXMLFromROMMap(nesRoms map[[32]byte]*NES20Tool.NESROM, fdsArchives map[[32]byte]*FDSTool.FDSArchiveFile, enableInes bool, preserveTrainer bool, enableOrganization bool) (string, error) {
+func MarshalXMLFromROMMap(nesRoms map[string]*NES20Tool.NESROM, fdsArchives map[string]*FDSTool.FDSArchiveFile, enableInes bool, preserveTrainer bool, enableOrganization bool) (string, error) {
 	romXml := &NESXML{}
 
 	for key := range nesRoms {
@@ -692,15 +692,15 @@ func MarshalXMLFromROMMap(nesRoms map[[32]byte]*NES20Tool.NESROM, fdsArchives ma
 	return string(xmlBytes), nil
 }
 
-func UnmarshalXMLToROMMap(xmlPayload string, enableInes bool, preserveTrainer bool, enableOrganization bool) (map[[32]byte]*NES20Tool.NESROM, map[[32]byte]*FDSTool.FDSArchiveFile, error) {
+func UnmarshalXMLToROMMap(xmlPayload string, enableInes bool, preserveTrainer bool, enableOrganization bool) (map[string]*NES20Tool.NESROM, map[string]*FDSTool.FDSArchiveFile, error) {
 	xmlStruct := &NESXML{}
 	err := xml.Unmarshal([]byte(xmlPayload), xmlStruct)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	romMap := make(map[[32]byte]*NES20Tool.NESROM)
-	archiveMap := make(map[[32]byte]*FDSTool.FDSArchiveFile)
+	romMap := make(map[string]*NES20Tool.NESROM)
+	archiveMap := make(map[string]*FDSTool.FDSArchiveFile)
 
 	for index := range xmlStruct.XMLROMs {
 		tempRom := &NES20Tool.NESROM{}
@@ -832,7 +832,7 @@ func UnmarshalXMLToROMMap(xmlPayload string, enableInes bool, preserveTrainer bo
 				return nil, nil, err
 			}
 
-			romMap[tempRom.SHA256] = tempRom
+			romMap[strings.ToUpper(hex.EncodeToString(tempRom.SHA256[:]))] = tempRom
 		} else if enableInes && xmlStruct.XMLROMs[index].Header10 != nil {
 			tempRomHeader10 := &NES20Tool.NES10Header{}
 			tempRom.Header10 = tempRomHeader10
@@ -904,7 +904,7 @@ func UnmarshalXMLToROMMap(xmlPayload string, enableInes bool, preserveTrainer bo
 				return nil, nil, err
 			}
 
-			romMap[tempRom.SHA256] = tempRom
+			romMap[strings.ToUpper(hex.EncodeToString(tempRom.SHA256[:]))] = tempRom
 		} else if xmlStruct.XMLROMs[index].FDSArchive != nil {
 			tempArchive := &FDSTool.FDSArchiveFile{}
 			tempArchive.CRC32 = binary.BigEndian.Uint32(crc32Bytes)
@@ -1054,7 +1054,7 @@ func UnmarshalXMLToROMMap(xmlPayload string, enableInes bool, preserveTrainer bo
 				tempArchive.ArchiveDisks = append(tempArchive.ArchiveDisks, tempDisk)
 			}
 
-			archiveMap[tempArchive.SHA256] = tempArchive
+			archiveMap[strings.ToUpper(hex.EncodeToString(tempArchive.SHA256[:]))] = tempArchive
 		}
 	}
 

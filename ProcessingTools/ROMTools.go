@@ -37,8 +37,8 @@ var (
 
 func MatchNESROM(testRom *NES20Tool.NESROM, templateRomMap map[string]*NES20Tool.NESROM, hashTypeTests uint64, enableInes bool) (*NES20Tool.NESROM, error) {
 	if hashTypeTests&HASH_TYPE_SHA256 > 0 {
-		if templateRomMap[strings.ToUpper(hex.EncodeToString(testRom.SHA256[:]))] != nil {
-			return templateRomMap[strings.ToUpper(hex.EncodeToString(testRom.SHA256[:]))], nil
+		if templateRomMap["SHA256:"+strings.ToUpper(hex.EncodeToString(testRom.SHA256[:]))] != nil {
+			return templateRomMap["SHA256:"+strings.ToUpper(hex.EncodeToString(testRom.SHA256[:]))], nil
 		}
 
 		for index := range templateRomMap {
@@ -63,8 +63,8 @@ func MatchNESROM(testRom *NES20Tool.NESROM, templateRomMap map[string]*NES20Tool
 	}
 
 	if hashTypeTests&HASH_TYPE_SHA1 > 0 {
-		if templateRomMap[strings.ToUpper(hex.EncodeToString(testRom.SHA1[:]))] != nil {
-			return templateRomMap[strings.ToUpper(hex.EncodeToString(testRom.SHA1[:]))], nil
+		if templateRomMap["SHA1:"+strings.ToUpper(hex.EncodeToString(testRom.SHA1[:]))] != nil {
+			return templateRomMap["SHA1:"+strings.ToUpper(hex.EncodeToString(testRom.SHA1[:]))], nil
 		}
 
 		for index := range templateRomMap {
@@ -89,8 +89,8 @@ func MatchNESROM(testRom *NES20Tool.NESROM, templateRomMap map[string]*NES20Tool
 	}
 
 	if hashTypeTests&HASH_TYPE_MD5 > 0 {
-		if templateRomMap[strings.ToUpper(hex.EncodeToString(testRom.MD5[:]))] != nil {
-			return templateRomMap[strings.ToUpper(hex.EncodeToString(testRom.MD5[:]))], nil
+		if templateRomMap["MD5:"+strings.ToUpper(hex.EncodeToString(testRom.MD5[:]))] != nil {
+			return templateRomMap["MD5:"+strings.ToUpper(hex.EncodeToString(testRom.MD5[:]))], nil
 		}
 
 		for index := range templateRomMap {
@@ -117,8 +117,8 @@ func MatchNESROM(testRom *NES20Tool.NESROM, templateRomMap map[string]*NES20Tool
 	if hashTypeTests&HASH_TYPE_CRC32 > 0 {
 		testRomCrc32Bytes := make([]byte, 4)
 		binary.BigEndian.PutUint32(testRomCrc32Bytes, testRom.CRC32)
-		if templateRomMap[strings.ToUpper(hex.EncodeToString(testRomCrc32Bytes))] != nil {
-			return templateRomMap[strings.ToUpper(hex.EncodeToString(testRomCrc32Bytes))], nil
+		if templateRomMap["CRC32:"+strings.ToUpper(hex.EncodeToString(testRomCrc32Bytes))] != nil {
+			return templateRomMap["CRC32:"+strings.ToUpper(hex.EncodeToString(testRomCrc32Bytes))], nil
 		}
 
 		for index := range templateRomMap {
@@ -214,28 +214,28 @@ func ProcessNESROMs(testRomList []*NES20Tool.NESROM, templateRomMap map[string]*
 
 func MatchFDSROM(testRom *FDSTool.FDSArchiveFile, romList map[string]*FDSTool.FDSArchiveFile, hashTypeTests uint64) (*FDSTool.FDSArchiveFile, error) {
 	if hashTypeTests&HASH_TYPE_SHA256 > 0 {
-		if romList[strings.ToUpper(hex.EncodeToString(testRom.SHA256[:]))] != nil {
-			return romList[strings.ToUpper(hex.EncodeToString(testRom.SHA256[:]))], nil
+		if romList["SHA256:"+strings.ToUpper(hex.EncodeToString(testRom.SHA256[:]))] != nil {
+			return romList["SHA256:"+strings.ToUpper(hex.EncodeToString(testRom.SHA256[:]))], nil
 		}
 	}
 
 	if hashTypeTests&HASH_TYPE_SHA1 > 0 {
-		if romList[strings.ToUpper(hex.EncodeToString(testRom.SHA1[:]))] != nil {
-			return romList[strings.ToUpper(hex.EncodeToString(testRom.SHA1[:]))], nil
+		if romList["SHA1:"+strings.ToUpper(hex.EncodeToString(testRom.SHA1[:]))] != nil {
+			return romList["SHA1:"+strings.ToUpper(hex.EncodeToString(testRom.SHA1[:]))], nil
 		}
 	}
 
 	if hashTypeTests&HASH_TYPE_MD5 > 0 {
-		if romList[strings.ToUpper(hex.EncodeToString(testRom.MD5[:]))] != nil {
-			return romList[strings.ToUpper(hex.EncodeToString(testRom.MD5[:]))], nil
+		if romList["MD5:"+strings.ToUpper(hex.EncodeToString(testRom.MD5[:]))] != nil {
+			return romList["MD5:"+strings.ToUpper(hex.EncodeToString(testRom.MD5[:]))], nil
 		}
 	}
 
 	if hashTypeTests&HASH_TYPE_CRC32 > 0 {
 		testRomCrc32Bytes := make([]byte, 4)
 		binary.BigEndian.PutUint32(testRomCrc32Bytes, testRom.CRC32)
-		if romList[strings.ToUpper(hex.EncodeToString(testRomCrc32Bytes))] != nil {
-			return romList[strings.ToUpper(hex.EncodeToString(testRomCrc32Bytes))], nil
+		if romList["CRC32:"+strings.ToUpper(hex.EncodeToString(testRomCrc32Bytes))] != nil {
+			return romList["CRC32:"+strings.ToUpper(hex.EncodeToString(testRomCrc32Bytes))], nil
 		}
 	}
 
@@ -270,4 +270,3 @@ func ProcessFDSROMs(testRomList []*FDSTool.FDSArchiveFile, templateRomMap map[st
 
 	return returnRomList
 }
-
