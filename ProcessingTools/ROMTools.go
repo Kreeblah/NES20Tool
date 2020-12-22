@@ -42,21 +42,29 @@ func MatchNESROM(testRom *NES20Tool.NESROM, templateRomMap map[string]*NES20Tool
 		}
 
 		for index := range templateRomMap {
-			if templateRomMap[index].Header20.PRGROMSHA256 == testRom.Header20.PRGROMSHA256 && templateRomMap[index].Header20.CHRROMSHA256 == testRom.Header20.CHRROMSHA256 {
-				return templateRomMap[index], nil
-			}
-
-			if templateRomMap[index].Header20.PRGROMSHA256 == testRom.Header10.PRGROMSHA256 && templateRomMap[index].Header20.CHRROMSHA256 == testRom.Header10.CHRROMSHA256 {
-				return templateRomMap[index], nil
-			}
-
-			if enableInes {
-				if templateRomMap[index].Header10.PRGROMSHA256 == testRom.Header10.PRGROMSHA256 && templateRomMap[index].Header10.CHRROMSHA256 == testRom.Header10.CHRROMSHA256 {
-					return templateRomMap[index], nil
+			if templateRomMap[index].Header20 != nil {
+				if testRom.Header20 != nil {
+					if templateRomMap[index].Header20.PRGROMSHA256 == testRom.Header20.PRGROMSHA256 && ((templateRomMap[index].Header20.CHRROMSize == 0 && testRom.Header20.CHRROMSize == 0) || templateRomMap[index].Header20.CHRROMSHA256 == testRom.Header20.CHRROMSHA256) {
+						return templateRomMap[index], nil
+					}
 				}
 
-				if templateRomMap[index].Header10.PRGROMSHA256 == testRom.Header20.PRGROMSHA256 && templateRomMap[index].Header10.CHRROMSHA256 == testRom.Header20.CHRROMSHA256 {
-					return templateRomMap[index], nil
+				if testRom.Header10 != nil {
+					if templateRomMap[index].Header20.PRGROMSHA256 == testRom.Header10.PRGROMSHA256 && ((templateRomMap[index].Header20.CHRROMSize == 0 && testRom.Header10.CHRROMSize == 0) || templateRomMap[index].Header20.CHRROMSHA256 == testRom.Header10.CHRROMSHA256) {
+						return templateRomMap[index], nil
+					}
+				}
+			} else if enableInes && templateRomMap[index].Header10 != nil {
+				if testRom.Header20 != nil {
+					if templateRomMap[index].Header10.PRGROMSHA256 == testRom.Header20.PRGROMSHA256 && ((templateRomMap[index].Header10.CHRROMSize == 0 && testRom.Header20.CHRROMSize == 0) || templateRomMap[index].Header10.CHRROMSHA256 == testRom.Header20.CHRROMSHA256) {
+						return templateRomMap[index], nil
+					}
+				}
+
+				if testRom.Header10 != nil {
+					if templateRomMap[index].Header10.PRGROMSHA256 == testRom.Header10.PRGROMSHA256 && ((templateRomMap[index].Header10.CHRROMSize == 0 && testRom.Header10.CHRROMSize == 0) || templateRomMap[index].Header10.CHRROMSHA256 == testRom.Header10.CHRROMSHA256) {
+						return templateRomMap[index], nil
+					}
 				}
 			}
 		}
@@ -68,21 +76,29 @@ func MatchNESROM(testRom *NES20Tool.NESROM, templateRomMap map[string]*NES20Tool
 		}
 
 		for index := range templateRomMap {
-			if templateRomMap[index].Header20.PRGROMSHA1 == testRom.Header20.PRGROMSHA1 && templateRomMap[index].Header20.CHRROMSHA1 == testRom.Header20.CHRROMSHA1 {
-				return templateRomMap[index], nil
-			}
-
-			if templateRomMap[index].Header20.PRGROMSHA1 == testRom.Header10.PRGROMSHA1 && templateRomMap[index].Header20.CHRROMSHA1 == testRom.Header10.CHRROMSHA1 {
-				return templateRomMap[index], nil
-			}
-
-			if enableInes {
-				if templateRomMap[index].Header10.PRGROMSHA1 == testRom.Header10.PRGROMSHA1 && templateRomMap[index].Header10.CHRROMSHA1 == testRom.Header10.CHRROMSHA1 {
-					return templateRomMap[index], nil
+			if templateRomMap[index].Header20 != nil {
+				if testRom.Header20 != nil {
+					if templateRomMap[index].Header20.PRGROMSHA1 == testRom.Header20.PRGROMSHA1 && ((templateRomMap[index].Header20.CHRROMSize == 0 && testRom.Header20.CHRROMSize == 0) || templateRomMap[index].Header20.CHRROMSHA1 == testRom.Header20.CHRROMSHA1) {
+						return templateRomMap[index], nil
+					}
 				}
 
-				if templateRomMap[index].Header10.PRGROMSHA1 == testRom.Header20.PRGROMSHA1 && templateRomMap[index].Header10.CHRROMSHA1 == testRom.Header20.CHRROMSHA1 {
-					return templateRomMap[index], nil
+				if testRom.Header10 != nil {
+					if templateRomMap[index].Header20.PRGROMSHA1 == testRom.Header10.PRGROMSHA1 && ((templateRomMap[index].Header20.CHRROMSize == 0 && testRom.Header10.CHRROMSize == 0) || templateRomMap[index].Header20.CHRROMSHA1 == testRom.Header10.CHRROMSHA1) {
+						return templateRomMap[index], nil
+					}
+				}
+			} else if enableInes && templateRomMap[index].Header10 != nil {
+				if testRom.Header20 != nil {
+					if templateRomMap[index].Header10.PRGROMSHA1 == testRom.Header20.PRGROMSHA1 && ((templateRomMap[index].Header10.CHRROMSize == 0 && testRom.Header20.CHRROMSize == 0) || templateRomMap[index].Header10.CHRROMSHA1 == testRom.Header20.CHRROMSHA1) {
+						return templateRomMap[index], nil
+					}
+				}
+
+				if testRom.Header10 != nil {
+					if templateRomMap[index].Header10.PRGROMSHA1 == testRom.Header10.PRGROMSHA1 && ((templateRomMap[index].Header10.CHRROMSize == 0 && testRom.Header10.CHRROMSize == 0) || templateRomMap[index].Header10.CHRROMSHA1 == testRom.Header10.CHRROMSHA1) {
+						return templateRomMap[index], nil
+					}
 				}
 			}
 		}
@@ -94,21 +110,29 @@ func MatchNESROM(testRom *NES20Tool.NESROM, templateRomMap map[string]*NES20Tool
 		}
 
 		for index := range templateRomMap {
-			if templateRomMap[index].Header20.PRGROMMD5 == testRom.Header20.PRGROMMD5 && templateRomMap[index].Header20.CHRROMMD5 == testRom.Header20.CHRROMMD5 {
-				return templateRomMap[index], nil
-			}
-
-			if templateRomMap[index].Header20.PRGROMMD5 == testRom.Header10.PRGROMMD5 && templateRomMap[index].Header20.CHRROMMD5 == testRom.Header10.CHRROMMD5 {
-				return templateRomMap[index], nil
-			}
-
-			if enableInes {
-				if templateRomMap[index].Header10.PRGROMMD5 == testRom.Header10.PRGROMMD5 && templateRomMap[index].Header10.CHRROMMD5 == testRom.Header10.CHRROMMD5 {
-					return templateRomMap[index], nil
+			if templateRomMap[index].Header20 != nil {
+				if testRom.Header20 != nil {
+					if templateRomMap[index].Header20.PRGROMMD5 == testRom.Header20.PRGROMMD5 && ((templateRomMap[index].Header20.CHRROMSize == 0 && testRom.Header20.CHRROMSize == 0) || templateRomMap[index].Header20.CHRROMMD5 == testRom.Header20.CHRROMMD5) {
+						return templateRomMap[index], nil
+					}
 				}
 
-				if templateRomMap[index].Header10.PRGROMMD5 == testRom.Header20.PRGROMMD5 && templateRomMap[index].Header10.CHRROMMD5 == testRom.Header20.CHRROMMD5 {
-					return templateRomMap[index], nil
+				if testRom.Header10 != nil {
+					if templateRomMap[index].Header20.PRGROMMD5 == testRom.Header10.PRGROMMD5 && ((templateRomMap[index].Header20.CHRROMSize == 0 && testRom.Header10.CHRROMSize == 0) || templateRomMap[index].Header20.CHRROMMD5 == testRom.Header10.CHRROMMD5) {
+						return templateRomMap[index], nil
+					}
+				}
+			} else if enableInes && templateRomMap[index].Header10 != nil {
+				if testRom.Header20 != nil {
+					if templateRomMap[index].Header10.PRGROMMD5 == testRom.Header20.PRGROMMD5 && ((templateRomMap[index].Header10.CHRROMSize == 0 && testRom.Header20.CHRROMSize == 0) || templateRomMap[index].Header10.CHRROMMD5 == testRom.Header20.CHRROMMD5) {
+						return templateRomMap[index], nil
+					}
+				}
+
+				if testRom.Header10 != nil {
+					if templateRomMap[index].Header10.PRGROMMD5 == testRom.Header10.PRGROMMD5 && ((templateRomMap[index].Header10.CHRROMSize == 0 && testRom.Header10.CHRROMSize == 0) || templateRomMap[index].Header10.CHRROMMD5 == testRom.Header10.CHRROMMD5) {
+						return templateRomMap[index], nil
+					}
 				}
 			}
 		}
@@ -122,21 +146,29 @@ func MatchNESROM(testRom *NES20Tool.NESROM, templateRomMap map[string]*NES20Tool
 		}
 
 		for index := range templateRomMap {
-			if templateRomMap[index].Header20.PRGROMCRC32 == testRom.Header20.PRGROMCRC32 && templateRomMap[index].Header20.CHRROMCRC32 == testRom.Header20.CHRROMCRC32 {
-				return templateRomMap[index], nil
-			}
-
-			if templateRomMap[index].Header20.PRGROMCRC32 == testRom.Header10.PRGROMCRC32 && templateRomMap[index].Header20.CHRROMCRC32 == testRom.Header10.CHRROMCRC32 {
-				return templateRomMap[index], nil
-			}
-
-			if enableInes {
-				if templateRomMap[index].Header10.PRGROMCRC32 == testRom.Header10.PRGROMCRC32 && templateRomMap[index].Header10.CHRROMCRC32 == testRom.Header10.CHRROMCRC32 {
-					return templateRomMap[index], nil
+			if templateRomMap[index].Header20 != nil {
+				if testRom.Header20 != nil {
+					if templateRomMap[index].Header20.PRGROMCRC32 == testRom.Header20.PRGROMCRC32 && ((templateRomMap[index].Header20.CHRROMSize == 0 && testRom.Header20.CHRROMSize == 0) || templateRomMap[index].Header20.CHRROMCRC32 == testRom.Header20.CHRROMCRC32) {
+						return templateRomMap[index], nil
+					}
 				}
 
-				if templateRomMap[index].Header10.PRGROMCRC32 == testRom.Header20.PRGROMCRC32 && templateRomMap[index].Header10.CHRROMCRC32 == testRom.Header20.CHRROMCRC32 {
-					return templateRomMap[index], nil
+				if testRom.Header10 != nil {
+					if templateRomMap[index].Header20.PRGROMCRC32 == testRom.Header10.PRGROMCRC32 && ((templateRomMap[index].Header20.CHRROMSize == 0 && testRom.Header10.CHRROMSize == 0) || templateRomMap[index].Header20.CHRROMCRC32 == testRom.Header10.CHRROMCRC32) {
+						return templateRomMap[index], nil
+					}
+				}
+			} else if enableInes && templateRomMap[index].Header10 != nil {
+				if testRom.Header20 != nil {
+					if templateRomMap[index].Header10.PRGROMCRC32 == testRom.Header20.PRGROMCRC32 && ((templateRomMap[index].Header10.CHRROMSize == 0 && testRom.Header20.CHRROMSize == 0) || templateRomMap[index].Header10.CHRROMCRC32 == testRom.Header20.CHRROMCRC32) {
+						return templateRomMap[index], nil
+					}
+				}
+
+				if testRom.Header10 != nil {
+					if templateRomMap[index].Header10.PRGROMCRC32 == testRom.Header10.PRGROMCRC32 && ((templateRomMap[index].Header10.CHRROMSize == 0 && testRom.Header10.CHRROMSize == 0) || templateRomMap[index].Header10.CHRROMCRC32 == testRom.Header10.CHRROMCRC32) {
+						return templateRomMap[index], nil
+					}
 				}
 			}
 		}
@@ -144,21 +176,29 @@ func MatchNESROM(testRom *NES20Tool.NESROM, templateRomMap map[string]*NES20Tool
 
 	if hashTypeTests&HASH_TYPE_SUM16 > 0 {
 		for index := range templateRomMap {
-			if templateRomMap[index].Header20.PRGROMSum16 == testRom.Header20.PRGROMSum16 && templateRomMap[index].Header20.CHRROMSum16 == testRom.Header20.CHRROMSum16 {
-				return templateRomMap[index], nil
-			}
-
-			if templateRomMap[index].Header20.PRGROMSum16 == testRom.Header10.PRGROMSum16 && templateRomMap[index].Header20.CHRROMSum16 == testRom.Header10.CHRROMSum16 {
-				return templateRomMap[index], nil
-			}
-
-			if enableInes {
-				if templateRomMap[index].Header10.PRGROMSum16 == testRom.Header10.PRGROMSum16 && templateRomMap[index].Header10.CHRROMSum16 == testRom.Header10.CHRROMSum16 {
-					return templateRomMap[index], nil
+			if templateRomMap[index].Header20 != nil {
+				if testRom.Header20 != nil {
+					if templateRomMap[index].Header20.PRGROMSum16 == testRom.Header20.PRGROMSum16 && ((templateRomMap[index].Header20.CHRROMSize == 0 && testRom.Header20.CHRROMSize == 0) || templateRomMap[index].Header20.CHRROMSum16 == testRom.Header20.CHRROMSum16) {
+						return templateRomMap[index], nil
+					}
 				}
 
-				if templateRomMap[index].Header10.PRGROMSum16 == testRom.Header20.PRGROMSum16 && templateRomMap[index].Header10.CHRROMSum16 == testRom.Header20.CHRROMSum16 {
-					return templateRomMap[index], nil
+				if testRom.Header10 != nil {
+					if templateRomMap[index].Header20.PRGROMSum16 == testRom.Header10.PRGROMSum16 && ((templateRomMap[index].Header20.CHRROMSize == 0 && testRom.Header10.CHRROMSize == 0) || templateRomMap[index].Header20.CHRROMSum16 == testRom.Header10.CHRROMSum16) {
+						return templateRomMap[index], nil
+					}
+				}
+			} else if enableInes && templateRomMap[index].Header10 != nil {
+				if testRom.Header20 != nil {
+					if templateRomMap[index].Header10.PRGROMSum16 == testRom.Header20.PRGROMSum16 && ((templateRomMap[index].Header10.CHRROMSize == 0 && testRom.Header20.CHRROMSize == 0) || templateRomMap[index].Header10.CHRROMSum16 == testRom.Header20.CHRROMSum16) {
+						return templateRomMap[index], nil
+					}
+				}
+
+				if testRom.Header10 != nil {
+					if templateRomMap[index].Header10.PRGROMSum16 == testRom.Header10.PRGROMSum16 && ((templateRomMap[index].Header10.CHRROMSize == 0 && testRom.Header10.CHRROMSize == 0) || templateRomMap[index].Header10.CHRROMSum16 == testRom.Header10.CHRROMSum16) {
+						return templateRomMap[index], nil
+					}
 				}
 			}
 		}

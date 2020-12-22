@@ -8,6 +8,7 @@ import (
 	"errors"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type NES20DBXML struct {
@@ -91,8 +92,10 @@ type NES20DBGame struct {
 	} `xml:"trainer"`
 }
 
-func MarshalNES2DBXMLFromROMMap(nesRoms map[string]*NES20Tool.NESROM) (string, error) {
+func MarshalNES20DBXMLFromROMMap(nesRoms map[string]*NES20Tool.NESROM) (string, error) {
 	romXml := &NES20DBXML{}
+
+	romXml.Date = time.Now().Format("2006-01-02")
 
 	for index := range nesRoms {
 		if nesRoms[index].Header20 != nil {
@@ -234,7 +237,8 @@ func MarshalNES2DBXMLFromROMMap(nesRoms map[string]*NES20Tool.NESROM) (string, e
 		return "", err
 	}
 
-	return string(xmlBytes), nil
+	returnString := "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" + "\n" + string(xmlBytes)
+	return returnString, nil
 }
 
 func UnmarshalNES20DBXMLToROMMap(xmlPayload string) (map[string]*NES20Tool.NESROM, error) {

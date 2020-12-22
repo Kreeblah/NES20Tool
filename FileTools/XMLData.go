@@ -503,7 +503,7 @@ func MarshalXMLFromROMMap(nesRoms map[string]*NES20Tool.NESROM, fdsArchives map[
 
 			if nesRoms[key].Header20.CHRROMSize > 0 {
 				tempXmlRom.Header20.Chrrom.Size = nesRoms[key].Header20.CHRROMSize
-			} else {
+			} else if nesRoms[key].Header20.CHRROMSizeExponent > 0 {
 				tempXmlRom.Header20.Chrrom.SizeExponent = nesRoms[key].Header20.CHRROMSizeExponent
 				tempXmlRom.Header20.Chrrom.SizeMultiplier = nesRoms[key].Header20.CHRROMSizeMultiplier
 			}
@@ -605,6 +605,8 @@ func MarshalXMLFromROMMap(nesRoms map[string]*NES20Tool.NESROM, fdsArchives map[
 				tempXmlRom.Header10.Trainer.Value = nesRoms[key].Header10.Trainer
 			}
 
+			tempXmlRom.Header10.Prgrom.Size = nesRoms[key].Header10.PRGROMSize
+
 			prgSum16Bytes := make([]byte, 2)
 			binary.BigEndian.PutUint16(prgSum16Bytes, nesRoms[key].Header10.PRGROMSum16)
 			tempXmlRom.Header10.Prgrom.Sum16 = strings.ToUpper(hex.EncodeToString(prgSum16Bytes))
@@ -616,6 +618,8 @@ func MarshalXMLFromROMMap(nesRoms map[string]*NES20Tool.NESROM, fdsArchives map[
 			tempXmlRom.Header10.Prgrom.Md5 = strings.ToUpper(hex.EncodeToString(nesRoms[key].Header10.PRGROMMD5[:]))
 			tempXmlRom.Header10.Prgrom.Sha1 = strings.ToUpper(hex.EncodeToString(nesRoms[key].Header10.PRGROMSHA1[:]))
 			tempXmlRom.Header10.Prgrom.Sha256 = strings.ToUpper(hex.EncodeToString(nesRoms[key].Header10.PRGROMSHA256[:]))
+
+			tempXmlRom.Header10.Chrrom.Size = nesRoms[key].Header10.CHRROMSize
 
 			chrSum16Bytes := make([]byte, 2)
 			binary.BigEndian.PutUint16(chrSum16Bytes, nesRoms[key].Header10.CHRROMSum16)
@@ -629,10 +633,6 @@ func MarshalXMLFromROMMap(nesRoms map[string]*NES20Tool.NESROM, fdsArchives map[
 			tempXmlRom.Header10.Chrrom.Sha1 = strings.ToUpper(hex.EncodeToString(nesRoms[key].Header10.CHRROMSHA1[:]))
 			tempXmlRom.Header10.Chrrom.Sha256 = strings.ToUpper(hex.EncodeToString(nesRoms[key].Header10.CHRROMSHA256[:]))
 
-			tempXmlRom.Header10.Prgrom.Size = nesRoms[key].Header10.PRGROMSize
-			tempXmlRom.Header10.Prgrom.Sum16 = strings.ToUpper(hex.EncodeToString(prgSum16Bytes))
-			tempXmlRom.Header10.Chrrom.Size = nesRoms[key].Header10.CHRROMSize
-			tempXmlRom.Header10.Chrrom.Sum16 = strings.ToUpper(hex.EncodeToString(chrSum16Bytes))
 			tempXmlRom.Header10.MirroringType.Value = nesRoms[key].Header10.MirroringType
 			tempXmlRom.Header10.Battery.Value = nesRoms[key].Header10.Battery
 			tempXmlRom.Header10.FourScreen.Value = nesRoms[key].Header10.FourScreen
@@ -841,6 +841,13 @@ func UnmarshalXMLToROMMap(xmlPayload string, enableInes bool, preserveTrainer bo
 				copy(tempRom.Header20.PRGROMSHA256[:], prgRomSha256Bytes)
 			}
 
+			if xmlStruct.XMLROMs[index].Header20.Chrrom.Size > 0 {
+				tempRom.Header20.CHRROMSize = xmlStruct.XMLROMs[index].Header20.Chrrom.Size
+			} else if xmlStruct.XMLROMs[index].Header20.Chrrom.SizeExponent > 0 {
+				tempRom.Header20.CHRROMSizeExponent = xmlStruct.XMLROMs[index].Header20.Chrrom.SizeExponent
+				tempRom.Header20.CHRROMSizeMultiplier = xmlStruct.XMLROMs[index].Header20.Chrrom.SizeMultiplier
+			}
+
 			chrRomSum16Bytes, err := hex.DecodeString(strings.ToLower(xmlStruct.XMLROMs[index].Header20.Chrrom.Sum16))
 			if err == nil {
 				tempRom.Header20.CHRROMSum16 = binary.BigEndian.Uint16(chrRomSum16Bytes)
@@ -864,13 +871,6 @@ func UnmarshalXMLToROMMap(xmlPayload string, enableInes bool, preserveTrainer bo
 			chrRomSha256Bytes, err := hex.DecodeString(strings.ToLower(xmlStruct.XMLROMs[index].Header20.Chrrom.Sha256))
 			if err == nil {
 				copy(tempRom.Header20.CHRROMSHA256[:], chrRomSha256Bytes)
-			}
-
-			if xmlStruct.XMLROMs[index].Header20.Chrrom.Size > 0 {
-				tempRom.Header20.CHRROMSize = xmlStruct.XMLROMs[index].Header20.Chrrom.Size
-			} else {
-				tempRom.Header20.CHRROMSizeExponent = xmlStruct.XMLROMs[index].Header20.Chrrom.SizeExponent
-				tempRom.Header20.CHRROMSizeMultiplier = xmlStruct.XMLROMs[index].Header20.Chrrom.SizeMultiplier
 			}
 
 			tempRom.Header20.PRGRAMSize = xmlStruct.XMLROMs[index].Header20.Prgram.Size
@@ -977,7 +977,6 @@ func UnmarshalXMLToROMMap(xmlPayload string, enableInes bool, preserveTrainer bo
 			tempRom.Header10 = tempRomHeader10
 
 			tempRom.Header10.PRGROMSize = xmlStruct.XMLROMs[index].Header10.Prgrom.Size
-			tempRom.Header10.CHRROMSize = xmlStruct.XMLROMs[index].Header10.Chrrom.Size
 
 			prgRomSum16Bytes, err := hex.DecodeString(strings.ToLower(xmlStruct.XMLROMs[index].Header10.Prgrom.Sum16))
 			if err == nil {
@@ -1003,6 +1002,8 @@ func UnmarshalXMLToROMMap(xmlPayload string, enableInes bool, preserveTrainer bo
 			if err == nil {
 				copy(tempRom.Header10.PRGROMSHA256[:], prgRomSha256Bytes)
 			}
+
+			tempRom.Header10.CHRROMSize = xmlStruct.XMLROMs[index].Header10.Chrrom.Size
 
 			chrRomSum16Bytes, err := hex.DecodeString(strings.ToLower(xmlStruct.XMLROMs[index].Header10.Chrrom.Sum16))
 			if err == nil {

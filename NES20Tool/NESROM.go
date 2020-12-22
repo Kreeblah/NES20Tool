@@ -219,7 +219,11 @@ func DecodeNESROM(inputFile []byte, enableInes bool, preserveTrainer bool, relat
 		romData.CHRROMData = chrRomData
 		romData.MiscROMData = miscRomData
 
-		romData.Header20.MiscROMCalculatedSize = uint64(len(romData.MiscROMData))
+		if romData.MiscROMData != nil && len(romData.MiscROMData) > 0 {
+			header20Data.MiscROMCalculatedSize = uint64(len(romData.MiscROMData))
+		} else {
+			header20Data.MiscROMCalculatedSize = 0
+		}
 
 		header20Data.PRGRAMSize = inputFile[10] & 0b00001111
 		header20Data.PRGNVRAMSize = (inputFile[10] & 0b11110000) >> 4
