@@ -26,26 +26,26 @@ import (
 	"flag"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 )
 
 func main() {
-	romSetEnableFDS := flag.Bool("enable-fds", false, "Enable FDS support.  Default: false {true|false}")
-	romSetEnableFDSHeaders := flag.Bool("enable-fds-headers", false, "Enable writing FDS headers for organization.  Default: false {true|false}")
-	romSetEnableV1 := flag.Bool("enable-ines", false, "Enable iNES header support.  iNES headers will always be lower priority for operations than NES 2.0 headers.  Default: false {true|false}")
-	romSetGenerateFDSCRCs := flag.Bool("generate-fds-crcs", false, "Generate FDS CRCs for data chunks.  Few, if any, emulators use these.  Default: false {true|false}")
-	romSetCommand := flag.String("operation", "", "Operation to perform on the ROM set.  Default: empty {read|write|convertxml}")
-	romSetOrganization := flag.Bool("organization", false, "Read/write relative file location information for automatic organization.  Default: false {true|false}")
-	romSetTruncateRoms := flag.Bool("truncate-roms", false, "Truncate PRGROM and CHRROM to the sizes specified in the header.  Default: false {true|false}")
-	romSetPreserveTrainers := flag.Bool("preserve-trainers", false, "Preserve trainers in read/write process.  Default: false {true|false}")
-	romOutputBasePath := flag.String("rom-output-base-path", "", "The path to use for writing organized roms.  Default: empty")
-	romSetSourceDirectory := flag.String("rom-source-path", "", "The path to a directory with NES ROMs to use for the operation.  Default: empty")
-	romSetXmlFile := flag.String("xml-file", "", "The path to an XML file to use for the operation.  Default: empty")
-	xmlImportFormat := flag.String("xml-import-format", "default", "The format of the imported XML file.  Default: default {default|nes20db}")
-	xmlExportFormat := flag.String("xml-export-format", "default", "The format of the exported XML file.  Default: default {default|nes20db}")
+	romSetEnableFDS := flag.Bool("enable-fds", false, "Enable FDS support.")
+	romSetEnableFDSHeaders := flag.Bool("enable-fds-headers", false, "Enable writing FDS headers for organization.")
+	romSetEnableV1 := flag.Bool("enable-ines", false, "Enable iNES header support.  iNES headers will always be lower priority for operations than NES 2.0 headers.")
+	romSetGenerateFDSCRCs := flag.Bool("generate-fds-crcs", false, "Generate FDS CRCs for data chunks.  Few, if any, emulators use these.")
+	romSetCommand := flag.String("operation", "", "Operation to perform on the ROM set. {read|write}")
+	romSetOrganization := flag.Bool("organization", false, "Read/write relative file location information for automatic organization.")
+	romSetTruncateRoms := flag.Bool("truncate-roms", false, "Truncate PRGROM and CHRROM to the sizes specified in the header.")
+	romSetPreserveTrainers := flag.Bool("preserve-trainers", false, "Preserve trainers in read/write process.")
+	romOutputBasePath := flag.String("rom-output-base-path", "", "The path to use for writing organized NES and/or FDS ROMs.")
+	romSetSourceDirectory := flag.String("rom-source-path", "", "The path to a directory with NES and/or FDS ROMs to use for the operation.")
+	romSetXmlFile := flag.String("xml-file", "", "The path to an XML file to use for the operation.")
+	xmlFormat := flag.String("xml-format", "default", "The format of the imported or exported XML file. {default|nes20db}")
 
 	flag.Parse()
 
-	if *romSetCommand != "read" && *romSetCommand != "write" && *romSetCommand != "convertxml" {
+	if *romSetCommand != "read" && *romSetCommand != "write" {
 		printUsage()
 		os.Exit(1)
 	}
@@ -60,20 +60,33 @@ func main() {
 		os.Exit(1)
 	}
 
-	if *xmlImportFormat != "default" && *xmlImportFormat != "nes20db" {
+	if *xmlFormat != "default" && *xmlFormat != "nes20db" {
 		printUsage()
 		os.Exit(1)
 	}
 
-	if *xmlExportFormat != "default" && *xmlExportFormat != "nes20db" {
-		printUsage()
-		os.Exit(1)
-	}
-
-	if *xmlImportFormat == "nes20db" || *xmlExportFormat == "nes20db" {
+	if *xmlFormat == "nes20db" {
 		*romSetEnableV1 = false
 		*romSetEnableFDS = false
 		*romSetOrganization = false
+	}
+
+	if *romOutputBasePath != "" {
+		tempOutputPath, err := filepath.Abs(*romOutputBasePath)
+		if err != nil {
+			panic(err)
+		}
+
+		*romOutputBasePath = tempOutputPath
+	}
+
+	if *romSetSourceDirectory != "" {
+		tempSourceDirectory, err := filepath.Abs(*romSetSourceDirectory)
+		if err != nil {
+			panic(err)
+		}
+
+		*romSetSourceDirectory = tempSourceDirectory
 	}
 
 	if *romSetCommand == "read" {
@@ -96,12 +109,12 @@ func main() {
 		println("Generating XML")
 		var xmlPayload string
 
-		if *xmlExportFormat == "default" {
+		if *xmlFormat == "default" {
 			xmlPayload, err = FileTools.MarshalXMLFromROMMap(romMap, archiveMap, *romSetEnableV1, *romSetPreserveTrainers, *romSetOrganization)
 			if err != nil {
 				panic(err)
 			}
-		} else if *xmlExportFormat == "nes20db" {
+		} else if *xmlFormat == "nes20db" {
 			xmlPayload, err = FileTools.MarshalNES20DBXMLFromROMMap(romMap)
 			if err != nil {
 				panic(err)
@@ -127,14 +140,14 @@ func main() {
 		var archiveData map[string]*FDSTool.FDSArchiveFile
 		var hashTypeMatch uint64
 
-		if *xmlImportFormat == "default" {
+		if *xmlFormat == "default" {
 			romData, archiveData, err = FileTools.UnmarshalXMLToROMMap(string(xmlPayload), *romSetEnableV1, *romSetPreserveTrainers, *romOutputBasePath != "")
 			if err != nil {
 				panic(err)
 			}
 
 			hashTypeMatch = ProcessingTools.HASH_TYPE_SHA256
-		} else if *xmlImportFormat == "nes20db" {
+		} else if *xmlFormat == "nes20db" {
 			romData, err = FileTools.UnmarshalNES20DBXMLToROMMap(string(xmlPayload))
 			if err != nil {
 				panic(err)
@@ -193,7 +206,7 @@ func main() {
 			if *romOutputBasePath == "" {
 				println("Writing FDS archive: " + matchedArchives[index].Filename)
 			} else {
-				println("Writing FDS archive: " + tempBasePath + matchedArchives[index].Filename)
+				println("Writing FDS archive: " + tempBasePath + matchedArchives[index].RelativePath)
 			}
 
 			err = FileTools.WriteFDSArchive(matchedArchives[index], *romSetEnableFDSHeaders, *romOutputBasePath)

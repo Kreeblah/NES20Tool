@@ -11,6 +11,10 @@ import (
 	"time"
 )
 
+var (
+	SHA1_ZERO_SUM = "DA39A3EE5E6B4B0D3255BFEF95601890AFD80709"
+)
+
 type NES20DBXML struct {
 	XMLName xml.Name       `xml:"nes20db"`
 	Text    string         `xml:",chardata"`
@@ -287,19 +291,28 @@ func UnmarshalNES20DBXMLToROMMap(xmlPayload string) (map[string]*NES20Tool.NESRO
 
 		tempRom.Header20.CHRROMCalculatedSize = xmlStruct.Games[index].Chrrom.Size
 
-		chrRomSum16Bytes, err := hex.DecodeString(strings.ToLower(xmlStruct.Games[index].Chrrom.Sum16))
-		if err == nil {
-			tempRom.Header20.CHRROMSum16 = binary.BigEndian.Uint16(chrRomSum16Bytes)
-		}
+		if xmlStruct.Games[index].Chrrom.Size > 0 {
+			chrRomSum16Bytes, err := hex.DecodeString(strings.ToLower(xmlStruct.Games[index].Chrrom.Sum16))
+			if err == nil {
+				tempRom.Header20.CHRROMSum16 = binary.BigEndian.Uint16(chrRomSum16Bytes)
+			}
 
-		chrRomCrc32Bytes, err := hex.DecodeString(strings.ToLower(xmlStruct.Games[index].Chrrom.Crc32))
-		if err == nil {
-			tempRom.Header20.CHRROMCRC32 = binary.BigEndian.Uint32(chrRomCrc32Bytes)
-		}
+			chrRomCrc32Bytes, err := hex.DecodeString(strings.ToLower(xmlStruct.Games[index].Chrrom.Crc32))
+			if err == nil {
+				tempRom.Header20.CHRROMCRC32 = binary.BigEndian.Uint32(chrRomCrc32Bytes)
+			}
 
-		chrRomSha1Bytes, err := hex.DecodeString(strings.ToLower(xmlStruct.Games[index].Chrrom.Sha1))
-		if err == nil {
-			copy(tempRom.Header20.CHRROMSHA1[:], chrRomSha1Bytes)
+			chrRomSha1Bytes, err := hex.DecodeString(strings.ToLower(xmlStruct.Games[index].Chrrom.Sha1))
+			if err == nil {
+				copy(tempRom.Header20.CHRROMSHA1[:], chrRomSha1Bytes)
+			}
+		} else {
+			tempRom.Header20.CHRROMSum16 = 0
+			tempRom.Header20.CHRROMCRC32 = 0
+			chrRomSha1ZeroBytes, err := hex.DecodeString(strings.ToLower(SHA1_ZERO_SUM))
+			if err == nil {
+				copy(tempRom.Header20.CHRROMSHA1[:], chrRomSha1ZeroBytes)
+			}
 		}
 
 		tempRom.Header20.Mapper = xmlStruct.Games[index].Pcb.Mapper
@@ -435,6 +448,11 @@ func UnmarshalNES20DBXMLToROMMap(xmlPayload string) (map[string]*NES20Tool.NESRO
 			tempRom.Header20.CHRNVRAMSize = 0
 		}
 
+		err = NES20Tool.UpdateSizes(tempRom, NES20Tool.PRG_CANONICAL_SIZE_CALCULATED, NES20Tool.CHR_CANONICAL_SIZE_CALCULATED)
+		if err != nil {
+			return nil, err
+		}
+
 		if xmlStruct.Games[index].Trainer.Size > 0 {
 			tempRom.Header20.Trainer = true
 			tempRom.Header20.TrainerCalculatedSize = 512
@@ -450,12 +468,7 @@ func UnmarshalNES20DBXMLToROMMap(xmlPayload string) (map[string]*NES20Tool.NESRO
 			}
 		}
 
-		err = NES20Tool.UpdateSizes(tempRom, NES20Tool.PRG_CANONICAL_SIZE_CALCULATED, NES20Tool.CHR_CANONICAL_SIZE_CALCULATED)
-		if err != nil {
-			return nil, err
-		}
-
-		romMap[strings.ToUpper(xmlStruct.Games[index].Rom.Sha1)] = tempRom
+		romMap["SHA1:" + strings.ToUpper(xmlStruct.Games[index].Rom.Sha1)] = tempRom
 	}
 
 	return romMap, nil

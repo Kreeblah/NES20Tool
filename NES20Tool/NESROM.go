@@ -514,7 +514,14 @@ func FactorRomSize(romSize uint64, romType uint64) (uint16, uint8, uint8) {
 		sizeMultiplier = 0
 	}
 
-	tempSize := romSize / uint64(sizeMultiplier)
+	var tempSize uint64
+
+	if sizeMultiplier > 0 {
+		tempSize = romSize / uint64(sizeMultiplier)
+	} else {
+		tempSize = romSize
+	}
+
 	sizeExponent = 0
 
 	for tempSize > 0 {

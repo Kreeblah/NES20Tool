@@ -971,7 +971,7 @@ func UnmarshalXMLToROMMap(xmlPayload string, enableInes bool, preserveTrainer bo
 				tempRom.Header20.MiscROMCalculatedSize = 0
 			}
 
-			romMap[strings.ToUpper(hex.EncodeToString(tempRom.SHA256[:]))] = tempRom
+			romMap["SHA256:" + strings.ToUpper(hex.EncodeToString(tempRom.SHA256[:]))] = tempRom
 		} else if enableInes && xmlStruct.XMLROMs[index].Header10 != nil {
 			tempRomHeader10 := &NES20Tool.NES10Header{}
 			tempRom.Header10 = tempRomHeader10
@@ -1087,7 +1087,7 @@ func UnmarshalXMLToROMMap(xmlPayload string, enableInes bool, preserveTrainer bo
 				tempRom.Header10.TrainerCalculatedSize = 0
 			}
 
-			romMap[strings.ToUpper(hex.EncodeToString(tempRom.SHA256[:]))] = tempRom
+			romMap["SHA256:" + strings.ToUpper(hex.EncodeToString(tempRom.SHA256[:]))] = tempRom
 		} else if xmlStruct.XMLROMs[index].FDSArchive != nil {
 			tempArchive := &FDSTool.FDSArchiveFile{}
 			tempArchive.CRC32 = binary.BigEndian.Uint32(crc32Bytes)
@@ -1237,7 +1237,7 @@ func UnmarshalXMLToROMMap(xmlPayload string, enableInes bool, preserveTrainer bo
 				tempArchive.ArchiveDisks = append(tempArchive.ArchiveDisks, tempDisk)
 			}
 
-			archiveMap[strings.ToUpper(hex.EncodeToString(tempArchive.SHA256[:]))] = tempArchive
+			archiveMap["SHA256:" + strings.ToUpper(hex.EncodeToString(tempArchive.SHA256[:]))] = tempArchive
 		}
 	}
 
