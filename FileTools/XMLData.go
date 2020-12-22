@@ -99,8 +99,14 @@ type NES20XMLFields struct {
 		Value bool   `xml:"value,attr"`
 	} `xml:"battery"`
 	Trainer struct {
-		Text  string `xml:",chardata"`
-		Value bool   `xml:"value,attr"`
+		Text   string `xml:",chardata"`
+		Value  bool   `xml:"value,attr"`
+		Size   uint16 `xml:"size,attr"`
+		Sum16  string `xml:"sum16,attr"`
+		Crc32  string `xml:"crc32,attr"`
+		Md5    string `xml:"md5,attr"`
+		Sha1   string `xml:"sha1,attr"`
+		Sha256 string `xml:"sha256,attr"`
 	} `xml:"trainer"`
 	FourScreen struct {
 		Text  string `xml:",chardata"`
@@ -135,8 +141,14 @@ type NES20XMLFields struct {
 		Value uint8  `xml:"value,attr"`
 	} `xml:"extendedConsoleType"`
 	MiscRoms struct {
-		Text  string `xml:",chardata"`
-		Value uint8  `xml:"value,attr"`
+		Text   string `xml:",chardata"`
+		Value  uint8  `xml:"value,attr"`
+		Size   uint64 `xml:"size,attr"`
+		Sum16  string `xml:"sum16,attr"`
+		Crc32  string `xml:"crc32,attr"`
+		Md5    string `xml:"md5,attr"`
+		Sha1   string `xml:"sha1,attr"`
+		Sha256 string `xml:"sha256,attr"`
 	} `xml:"miscRoms"`
 	DefaultExpansion struct {
 		Text  string `xml:",chardata"`
@@ -172,8 +184,14 @@ type NES10XMLFields struct {
 		Value bool   `xml:"value,attr"`
 	} `xml:"battery"`
 	Trainer struct {
-		Text  string `xml:",chardata"`
-		Value bool   `xml:"value,attr"`
+		Text   string `xml:",chardata"`
+		Value  bool   `xml:"value,attr"`
+		Size   uint16 `xml:"size,attr"`
+		Sum16  string `xml:"sum16,attr"`
+		Crc32  string `xml:"crc32,attr"`
+		Md5    string `xml:"md5,attr"`
+		Sha1   string `xml:"sha1,attr"`
+		Sha256 string `xml:"sha256,attr"`
 	} `xml:"trainer"`
 	FourScreen struct {
 		Text  string `xml:",chardata"`
@@ -439,8 +457,29 @@ func MarshalXMLFromROMMap(nesRoms map[string]*NES20Tool.NESROM, fdsArchives map[
 				tempXmlRom.RelativePath = tempRelativePath
 			}
 
-			if preserveTrainer && nesRoms[key].TrainerData != nil {
-				tempXmlRom.TrainerData.Text = strings.ToUpper(hex.EncodeToString(nesRoms[key].TrainerData))
+			if preserveTrainer {
+				tempXmlRom.Header20.Trainer.Value = nesRoms[key].Header20.Trainer
+
+				if nesRoms[key].Header20.Trainer {
+					trainerSum16Bytes := make([]byte, 2)
+					binary.BigEndian.PutUint16(trainerSum16Bytes, nesRoms[key].Header20.TrainerSum16)
+					tempXmlRom.Header20.Trainer.Sum16 = strings.ToUpper(hex.EncodeToString(trainerSum16Bytes))
+
+					trainerCrc32Bytes := make([]byte, 4)
+					binary.BigEndian.PutUint32(trainerCrc32Bytes, nesRoms[key].Header20.TrainerCRC32)
+					tempXmlRom.Header20.Trainer.Crc32 = strings.ToUpper(hex.EncodeToString(trainerCrc32Bytes))
+
+					tempXmlRom.Header20.Trainer.Md5 = strings.ToUpper(hex.EncodeToString(nesRoms[key].Header20.TrainerMD5[:]))
+					tempXmlRom.Header20.Trainer.Sha1 = strings.ToUpper(hex.EncodeToString(nesRoms[key].Header20.TrainerSHA1[:]))
+					tempXmlRom.Header20.Trainer.Sha256 = strings.ToUpper(hex.EncodeToString(nesRoms[key].Header20.TrainerSHA256[:]))
+
+					if len(nesRoms[key].TrainerData) == 512 {
+						tempXmlRom.Header20.Trainer.Size = 512
+						tempXmlRom.TrainerData.Text = strings.ToUpper(hex.EncodeToString(nesRoms[key].TrainerData))
+					}
+				}
+			} else {
+				tempXmlRom.Header20.Trainer.Value = false
 			}
 
 			if nesRoms[key].Header20.PRGROMSize > 0 {
@@ -452,7 +491,6 @@ func MarshalXMLFromROMMap(nesRoms map[string]*NES20Tool.NESROM, fdsArchives map[
 
 			prgSum16Bytes := make([]byte, 2)
 			binary.BigEndian.PutUint16(prgSum16Bytes, nesRoms[key].Header20.PRGROMSum16)
-
 			tempXmlRom.Header20.Prgrom.Sum16 = strings.ToUpper(hex.EncodeToString(prgSum16Bytes))
 
 			prgCrc32Bytes := make([]byte, 4)
@@ -489,7 +527,6 @@ func MarshalXMLFromROMMap(nesRoms map[string]*NES20Tool.NESROM, fdsArchives map[
 			tempXmlRom.Header20.Chrnvram.Size = nesRoms[key].Header20.CHRNVRAMSize
 			tempXmlRom.Header20.MirroringType.Value = nesRoms[key].Header20.MirroringType
 			tempXmlRom.Header20.Battery.Value = nesRoms[key].Header20.Battery
-			tempXmlRom.Header20.Trainer.Value = nesRoms[key].Header20.Trainer
 			tempXmlRom.Header20.FourScreen.Value = nesRoms[key].Header20.FourScreen
 			tempXmlRom.Header20.ConsoleType.Value = nesRoms[key].Header20.ConsoleType
 			tempXmlRom.Header20.Mapper.Value = nesRoms[key].Header20.Mapper
@@ -500,6 +537,22 @@ func MarshalXMLFromROMMap(nesRoms map[string]*NES20Tool.NESROM, fdsArchives map[
 			tempXmlRom.Header20.ExtendedConsoleType.Value = nesRoms[key].Header20.ExtendedConsoleType
 			tempXmlRom.Header20.MiscRoms.Value = nesRoms[key].Header20.MiscROMs
 			tempXmlRom.Header20.DefaultExpansion.Value = nesRoms[key].Header20.DefaultExpansion
+
+			if nesRoms[key].Header20.MiscROMs > 0 {
+				tempXmlRom.Header20.MiscRoms.Size = nesRoms[key].Header20.MiscROMCalculatedSize
+
+				miscRomSum16Bytes := make([]byte, 2)
+				binary.BigEndian.PutUint16(miscRomSum16Bytes, nesRoms[key].Header20.MiscROMSum16)
+				tempXmlRom.Header20.MiscRoms.Sum16 = strings.ToUpper(hex.EncodeToString(miscRomSum16Bytes))
+
+				miscRomCrc32Bytes := make([]byte, 4)
+				binary.BigEndian.PutUint32(miscRomCrc32Bytes, nesRoms[key].Header20.MiscROMCRC32)
+				tempXmlRom.Header20.MiscRoms.Crc32 = strings.ToUpper(hex.EncodeToString(miscRomCrc32Bytes))
+
+				tempXmlRom.Header20.MiscRoms.Md5 = strings.ToUpper(hex.EncodeToString(nesRoms[key].Header20.MiscROMMD5[:]))
+				tempXmlRom.Header20.MiscRoms.Sha1 = strings.ToUpper(hex.EncodeToString(nesRoms[key].Header20.MiscROMSHA1[:]))
+				tempXmlRom.Header20.MiscRoms.Sha256 = strings.ToUpper(hex.EncodeToString(nesRoms[key].Header20.MiscROMSHA256[:]))
+			}
 
 			romXml.XMLROMs = append(romXml.XMLROMs, tempXmlRom)
 		} else if enableInes && nesRoms[key].Header10 != nil {
@@ -527,16 +580,34 @@ func MarshalXMLFromROMMap(nesRoms map[string]*NES20Tool.NESROM, fdsArchives map[
 				tempXmlRom.RelativePath = tempRelativePath
 			}
 
-			if preserveTrainer && nesRoms[key].TrainerData != nil {
-				tempXmlRom.TrainerData.Text = strings.ToUpper(hex.EncodeToString(nesRoms[key].TrainerData))
-			}
+			if preserveTrainer {
+				tempXmlRom.Header10.Trainer.Value = nesRoms[key].Header10.Trainer
 
-			tempNesRom := nesRoms[key]
-			if tempNesRom == nil {
+				if nesRoms[key].Header10.Trainer {
+					trainerSum16Bytes := make([]byte, 2)
+					binary.BigEndian.PutUint16(trainerSum16Bytes, nesRoms[key].Header10.TrainerSum16)
+					tempXmlRom.Header10.Trainer.Sum16 = strings.ToUpper(hex.EncodeToString(trainerSum16Bytes))
+
+					trainerCrc32Bytes := make([]byte, 4)
+					binary.BigEndian.PutUint32(trainerCrc32Bytes, nesRoms[key].Header10.TrainerCRC32)
+					tempXmlRom.Header10.Trainer.Crc32 = strings.ToUpper(hex.EncodeToString(trainerCrc32Bytes))
+
+					tempXmlRom.Header10.Trainer.Md5 = strings.ToUpper(hex.EncodeToString(nesRoms[key].Header10.TrainerMD5[:]))
+					tempXmlRom.Header10.Trainer.Sha1 = strings.ToUpper(hex.EncodeToString(nesRoms[key].Header10.TrainerSHA1[:]))
+					tempXmlRom.Header10.Trainer.Sha256 = strings.ToUpper(hex.EncodeToString(nesRoms[key].Header10.TrainerSHA256[:]))
+
+					if len(nesRoms[key].TrainerData) == 512 {
+						tempXmlRom.Header10.Trainer.Size = 512
+						tempXmlRom.TrainerData.Text = strings.ToUpper(hex.EncodeToString(nesRoms[key].TrainerData))
+					}
+				}
+			} else {
+				tempXmlRom.Header10.Trainer.Value = nesRoms[key].Header10.Trainer
 			}
 
 			prgSum16Bytes := make([]byte, 2)
 			binary.BigEndian.PutUint16(prgSum16Bytes, nesRoms[key].Header10.PRGROMSum16)
+			tempXmlRom.Header10.Prgrom.Sum16 = strings.ToUpper(hex.EncodeToString(prgSum16Bytes))
 
 			prgCrc32Bytes := make([]byte, 4)
 			binary.BigEndian.PutUint32(prgCrc32Bytes, nesRoms[key].Header10.PRGROMCRC32)
@@ -548,6 +619,7 @@ func MarshalXMLFromROMMap(nesRoms map[string]*NES20Tool.NESROM, fdsArchives map[
 
 			chrSum16Bytes := make([]byte, 2)
 			binary.BigEndian.PutUint16(chrSum16Bytes, nesRoms[key].Header10.CHRROMSum16)
+			tempXmlRom.Header10.Chrrom.Sum16 = strings.ToUpper(hex.EncodeToString(chrSum16Bytes))
 
 			chrCrc32Bytes := make([]byte, 4)
 			binary.BigEndian.PutUint32(chrCrc32Bytes, nesRoms[key].Header10.CHRROMCRC32)
@@ -563,7 +635,6 @@ func MarshalXMLFromROMMap(nesRoms map[string]*NES20Tool.NESROM, fdsArchives map[
 			tempXmlRom.Header10.Chrrom.Sum16 = strings.ToUpper(hex.EncodeToString(chrSum16Bytes))
 			tempXmlRom.Header10.MirroringType.Value = nesRoms[key].Header10.MirroringType
 			tempXmlRom.Header10.Battery.Value = nesRoms[key].Header10.Battery
-			tempXmlRom.Header10.Trainer.Value = nesRoms[key].Header10.Trainer
 			tempXmlRom.Header10.FourScreen.Value = nesRoms[key].Header10.FourScreen
 			tempXmlRom.Header10.Mapper.Value = nesRoms[key].Header10.Mapper
 			tempXmlRom.Header10.VsUnisystem.Value = nesRoms[key].Header10.VsUnisystem
@@ -734,13 +805,6 @@ func UnmarshalXMLToROMMap(xmlPayload string, enableInes bool, preserveTrainer bo
 			tempRom.RelativePath = tempRelativePath
 		}
 
-		if preserveTrainer && xmlStruct.XMLROMs[index].TrainerData.Text != "" {
-			trainerDataBytes, err := hex.DecodeString(strings.ToLower(xmlStruct.XMLROMs[index].TrainerData.Text))
-			if err == nil {
-				tempRom.TrainerData = trainerDataBytes
-			}
-		}
-
 		if xmlStruct.XMLROMs[index].Header20 != nil {
 			tempRomHeader20 := &NES20Tool.NES20Header{}
 			tempRom.Header20 = tempRomHeader20
@@ -815,7 +879,6 @@ func UnmarshalXMLToROMMap(xmlPayload string, enableInes bool, preserveTrainer bo
 			tempRom.Header20.CHRNVRAMSize = xmlStruct.XMLROMs[index].Header20.Chrnvram.Size
 			tempRom.Header20.MirroringType = xmlStruct.XMLROMs[index].Header20.MirroringType.Value
 			tempRom.Header20.Battery = xmlStruct.XMLROMs[index].Header20.Battery.Value
-			tempRom.Header20.Trainer = xmlStruct.XMLROMs[index].Header20.Trainer.Value
 			tempRom.Header20.FourScreen = xmlStruct.XMLROMs[index].Header20.FourScreen.Value
 			tempRom.Header20.ConsoleType = xmlStruct.XMLROMs[index].Header20.ConsoleType.Value
 			tempRom.Header20.Mapper = xmlStruct.XMLROMs[index].Header20.Mapper.Value
@@ -830,6 +893,82 @@ func UnmarshalXMLToROMMap(xmlPayload string, enableInes bool, preserveTrainer bo
 			err = NES20Tool.UpdateSizes(tempRom, NES20Tool.PRG_CANONICAL_SIZE_FACTORED, NES20Tool.CHR_CANONICAL_SIZE_FACTORED)
 			if err != nil {
 				return nil, nil, err
+			}
+
+			if preserveTrainer {
+				tempRom.Header20.Trainer = xmlStruct.XMLROMs[index].Header20.Trainer.Value
+
+				if xmlStruct.XMLROMs[index].Header20.Trainer.Value {
+					trainerSum16Bytes, err := hex.DecodeString(strings.ToLower(xmlStruct.XMLROMs[index].Header20.Trainer.Sum16))
+					if err == nil {
+						tempRom.Header20.TrainerSum16 = binary.BigEndian.Uint16(trainerSum16Bytes)
+					}
+
+					trainerCrc32Bytes, err := hex.DecodeString(strings.ToLower(xmlStruct.XMLROMs[index].Header20.Trainer.Crc32))
+					if err == nil {
+						tempRom.Header20.TrainerCRC32 = binary.BigEndian.Uint32(trainerCrc32Bytes)
+					}
+
+					trainerMd5Bytes, err := hex.DecodeString(strings.ToLower(xmlStruct.XMLROMs[index].Header20.Trainer.Md5))
+					if err == nil {
+						copy(tempRom.Header20.TrainerMD5[:], trainerMd5Bytes)
+					}
+
+					trainerSha1Bytes, err := hex.DecodeString(strings.ToLower(xmlStruct.XMLROMs[index].Header20.Trainer.Sha1))
+					if err == nil {
+						copy(tempRom.Header20.TrainerSHA1[:], trainerSha1Bytes)
+					}
+
+					trainerSha256Bytes, err := hex.DecodeString(strings.ToLower(xmlStruct.XMLROMs[index].Header20.Trainer.Sha256))
+					if err == nil {
+						copy(tempRom.Header20.TrainerSHA256[:], trainerSha256Bytes)
+					}
+
+					if len(xmlStruct.XMLROMs[index].TrainerData.Text) == 2*512 {
+						tempRom.Header20.TrainerCalculatedSize = 512
+
+						trainerDataBytes, err := hex.DecodeString(strings.ToLower(xmlStruct.XMLROMs[index].TrainerData.Text))
+						if err == nil {
+							tempRom.TrainerData = trainerDataBytes
+						}
+					}
+				}
+			} else {
+				tempRom.Header20.Trainer = false
+				tempRom.Header20.TrainerCalculatedSize = 0
+			}
+
+			if xmlStruct.XMLROMs[index].Header20.MiscRoms.Value > 0 {
+				tempRom.Header20.MiscROMs = xmlStruct.XMLROMs[index].Header20.MiscRoms.Value
+				tempRom.Header20.MiscROMCalculatedSize = xmlStruct.XMLROMs[index].Header20.MiscRoms.Size
+
+				miscRomSum16Bytes, err := hex.DecodeString(strings.ToLower(xmlStruct.XMLROMs[index].Header20.MiscRoms.Sum16))
+				if err == nil {
+					tempRom.Header20.MiscROMSum16 = binary.BigEndian.Uint16(miscRomSum16Bytes)
+				}
+
+				miscRomCrc32Bytes, err := hex.DecodeString(strings.ToLower(xmlStruct.XMLROMs[index].Header20.MiscRoms.Crc32))
+				if err == nil {
+					tempRom.Header20.MiscROMCRC32 = binary.BigEndian.Uint32(miscRomCrc32Bytes)
+				}
+
+				miscRomMd5Bytes, err := hex.DecodeString(strings.ToLower(xmlStruct.XMLROMs[index].Header20.MiscRoms.Md5))
+				if err == nil {
+					copy(tempRom.Header20.MiscROMMD5[:], miscRomMd5Bytes)
+				}
+
+				miscRomSha1Bytes, err := hex.DecodeString(strings.ToLower(xmlStruct.XMLROMs[index].Header20.MiscRoms.Sha1))
+				if err == nil {
+					copy(tempRom.Header20.MiscROMSHA1[:], miscRomSha1Bytes)
+				}
+
+				miscRomSha256Bytes, err := hex.DecodeString(strings.ToLower(xmlStruct.XMLROMs[index].Header20.MiscRoms.Sha256))
+				if err == nil {
+					copy(tempRom.Header20.MiscROMSHA256[:], miscRomSha256Bytes)
+				}
+			} else {
+				tempRom.Header20.MiscROMs = 0
+				tempRom.Header20.MiscROMCalculatedSize = 0
 			}
 
 			romMap[strings.ToUpper(hex.EncodeToString(tempRom.SHA256[:]))] = tempRom
@@ -902,6 +1041,49 @@ func UnmarshalXMLToROMMap(xmlPayload string, enableInes bool, preserveTrainer bo
 			err = NES20Tool.UpdateSizes(tempRom, NES20Tool.PRG_CANONICAL_SIZE_FACTORED, NES20Tool.CHR_CANONICAL_SIZE_FACTORED)
 			if err != nil {
 				return nil, nil, err
+			}
+
+			if preserveTrainer {
+				tempRom.Header10.Trainer = xmlStruct.XMLROMs[index].Header10.Trainer.Value
+
+				if xmlStruct.XMLROMs[index].Header10.Trainer.Value {
+					trainerSum16Bytes, err := hex.DecodeString(strings.ToLower(xmlStruct.XMLROMs[index].Header10.Trainer.Sum16))
+					if err == nil {
+						tempRom.Header10.TrainerSum16 = binary.BigEndian.Uint16(trainerSum16Bytes)
+					}
+
+					trainerCrc32Bytes, err := hex.DecodeString(strings.ToLower(xmlStruct.XMLROMs[index].Header10.Trainer.Crc32))
+					if err == nil {
+						tempRom.Header10.TrainerCRC32 = binary.BigEndian.Uint32(trainerCrc32Bytes)
+					}
+
+					trainerMd5Bytes, err := hex.DecodeString(strings.ToLower(xmlStruct.XMLROMs[index].Header10.Trainer.Md5))
+					if err == nil {
+						copy(tempRom.Header10.TrainerMD5[:], trainerMd5Bytes)
+					}
+
+					trainerSha1Bytes, err := hex.DecodeString(strings.ToLower(xmlStruct.XMLROMs[index].Header10.Trainer.Sha1))
+					if err == nil {
+						copy(tempRom.Header10.TrainerSHA1[:], trainerSha1Bytes)
+					}
+
+					trainerSha256Bytes, err := hex.DecodeString(strings.ToLower(xmlStruct.XMLROMs[index].Header10.Trainer.Sha256))
+					if err == nil {
+						copy(tempRom.Header10.TrainerSHA256[:], trainerSha256Bytes)
+					}
+
+					if len(xmlStruct.XMLROMs[index].TrainerData.Text) == 2*512 {
+						tempRom.Header10.TrainerCalculatedSize = 512
+
+						trainerDataBytes, err := hex.DecodeString(strings.ToLower(xmlStruct.XMLROMs[index].TrainerData.Text))
+						if err == nil {
+							tempRom.TrainerData = trainerDataBytes
+						}
+					}
+				}
+			} else {
+				tempRom.Header10.Trainer = false
+				tempRom.Header10.TrainerCalculatedSize = 0
 			}
 
 			romMap[strings.ToUpper(hex.EncodeToString(tempRom.SHA256[:]))] = tempRom

@@ -182,12 +182,18 @@ func UpdateNESROM(targetRom *NES20Tool.NESROM, templateRom *NES20Tool.NESROM, tr
 		return errors.New("Unable to update ROM.")
 	}
 
-	targetRom.Name = templateRom.Name
+	if templateRom.Name != "" {
+		targetRom.Name = templateRom.Name
+	}
+
+	if templateRom.RelativePath != "" {
+		targetRom.RelativePath = templateRom.RelativePath
+	}
+
 	targetRom.SHA256 = templateRom.SHA256
 	targetRom.SHA1 = templateRom.SHA1
 	targetRom.MD5 = templateRom.MD5
 	targetRom.CRC32 = templateRom.CRC32
-	targetRom.RelativePath = templateRom.RelativePath
 
 	if truncateRom {
 		NES20Tool.TruncateROMDataAndSections(targetRom)

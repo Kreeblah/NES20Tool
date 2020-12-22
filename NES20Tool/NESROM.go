@@ -42,66 +42,84 @@ var (
 )
 
 type NES20Header struct {
-	PRGROMSize           uint16
-	PRGROMCalculatedSize uint64
-	PRGROMSum16          uint16
-	PRGROMCRC32          uint32
-	PRGROMMD5            [16]byte
-	PRGROMSHA1           [20]byte
-	PRGROMSHA256         [32]byte
-	PRGROMSizeExponent   uint8
-	PRGROMSizeMultiplier uint8
-	CHRROMSize           uint16
-	CHRROMCalculatedSize uint64
-	CHRROMSum16          uint16
-	CHRROMCRC32          uint32
-	CHRROMMD5            [16]byte
-	CHRROMSHA1           [20]byte
-	CHRROMSHA256         [32]byte
-	CHRROMSizeExponent   uint8
-	CHRROMSizeMultiplier uint8
-	PRGRAMSize           uint8
-	PRGNVRAMSize         uint8
-	CHRRAMSize           uint8
-	CHRNVRAMSize         uint8
-	MirroringType        bool
-	Battery              bool
-	Trainer              bool
-	FourScreen           bool
-	ConsoleType          uint8
-	Mapper               uint16
-	SubMapper            uint8
-	CPUPPUTiming         uint8
-	VsHardwareType       uint8
-	VsPPUType            uint8
-	ExtendedConsoleType  uint8
-	MiscROMs             uint8
-	DefaultExpansion     uint8
+	PRGROMSize            uint16
+	PRGROMCalculatedSize  uint64
+	PRGROMSum16           uint16
+	PRGROMCRC32           uint32
+	PRGROMMD5             [16]byte
+	PRGROMSHA1            [20]byte
+	PRGROMSHA256          [32]byte
+	PRGROMSizeExponent    uint8
+	PRGROMSizeMultiplier  uint8
+	CHRROMSize            uint16
+	CHRROMCalculatedSize  uint64
+	CHRROMSum16           uint16
+	CHRROMCRC32           uint32
+	CHRROMMD5             [16]byte
+	CHRROMSHA1            [20]byte
+	CHRROMSHA256          [32]byte
+	CHRROMSizeExponent    uint8
+	CHRROMSizeMultiplier  uint8
+	MiscROMCalculatedSize uint64
+	MiscROMSum16          uint16
+	MiscROMCRC32          uint32
+	MiscROMMD5            [16]byte
+	MiscROMSHA1           [20]byte
+	MiscROMSHA256         [32]byte
+	TrainerCalculatedSize uint16
+	TrainerSum16          uint16
+	TrainerCRC32          uint32
+	TrainerMD5            [16]byte
+	TrainerSHA1           [20]byte
+	TrainerSHA256         [32]byte
+	PRGRAMSize            uint8
+	PRGNVRAMSize          uint8
+	CHRRAMSize            uint8
+	CHRNVRAMSize          uint8
+	MirroringType         bool
+	Battery               bool
+	Trainer               bool
+	FourScreen            bool
+	ConsoleType           uint8
+	Mapper                uint16
+	SubMapper             uint8
+	CPUPPUTiming          uint8
+	VsHardwareType        uint8
+	VsPPUType             uint8
+	ExtendedConsoleType   uint8
+	MiscROMs              uint8
+	DefaultExpansion      uint8
 }
 
 type NES10Header struct {
-	PRGROMSize           uint8
-	PRGROMCalculatedSize uint64
-	PRGROMSum16          uint16
-	PRGROMCRC32          uint32
-	PRGROMMD5            [16]byte
-	PRGROMSHA1           [20]byte
-	PRGROMSHA256         [32]byte
-	CHRROMSize           uint8
-	CHRROMCalculatedSize uint64
-	CHRROMSum16          uint16
-	CHRROMCRC32          uint32
-	CHRROMMD5            [16]byte
-	CHRROMSHA1           [20]byte
-	CHRROMSHA256         [32]byte
-	MirroringType        bool
-	Battery              bool
-	Trainer              bool
-	FourScreen           bool
-	Mapper               uint8
-	VsUnisystem          bool
-	PRGRAMSize           uint8
-	TVSystem             bool
+	PRGROMSize            uint8
+	PRGROMCalculatedSize  uint64
+	PRGROMSum16           uint16
+	PRGROMCRC32           uint32
+	PRGROMMD5             [16]byte
+	PRGROMSHA1            [20]byte
+	PRGROMSHA256          [32]byte
+	CHRROMSize            uint8
+	CHRROMCalculatedSize  uint64
+	CHRROMSum16           uint16
+	CHRROMCRC32           uint32
+	CHRROMMD5             [16]byte
+	CHRROMSHA1            [20]byte
+	CHRROMSHA256          [32]byte
+	TrainerCalculatedSize uint16
+	TrainerSum16          uint16
+	TrainerCRC32          uint32
+	TrainerMD5            [16]byte
+	TrainerSHA1           [20]byte
+	TrainerSHA256         [32]byte
+	MirroringType         bool
+	Battery               bool
+	Trainer               bool
+	FourScreen            bool
+	Mapper                uint8
+	VsUnisystem           bool
+	PRGRAMSize            uint8
+	TVSystem              bool
 }
 
 type NESROM struct {
@@ -119,6 +137,7 @@ type NESROM struct {
 	TrainerData  []byte
 	PRGROMData   []byte
 	CHRROMData   []byte
+	MiscROMData  []byte
 }
 
 type NESROMError struct {
@@ -191,13 +210,16 @@ func DecodeNESROM(inputFile []byte, enableInes bool, preserveTrainer bool, relat
 			header20Data.CHRROMCalculatedSize = (1 << header20Data.CHRROMSizeExponent) * uint64((header20Data.CHRROMSizeMultiplier*2)+1)
 		}
 
-		prgRomData, chrRomData, err := getPrgRomAndChrRomData(romData.ROMData, header20Data.PRGROMCalculatedSize, header20Data.CHRROMCalculatedSize)
+		prgRomData, chrRomData, miscRomData, err := getSplitRomData(romData.ROMData, header20Data.PRGROMCalculatedSize, header20Data.CHRROMCalculatedSize)
 		if err != nil {
 			return romData, err
 		}
 
 		romData.PRGROMData = prgRomData
 		romData.CHRROMData = chrRomData
+		romData.MiscROMData = miscRomData
+
+		romData.Header20.MiscROMCalculatedSize = uint64(len(romData.MiscROMData))
 
 		header20Data.PRGRAMSize = inputFile[10] & 0b00001111
 		header20Data.PRGNVRAMSize = (inputFile[10] & 0b11110000) >> 4
@@ -211,6 +233,8 @@ func DecodeNESROM(inputFile []byte, enableInes bool, preserveTrainer bool, relat
 			header20Data.Trainer = false
 		} else {
 			header20Data.Trainer = (inputFile[6] & 0b00000100) == 0b00000100
+
+			header20Data.TrainerCalculatedSize = 512
 		}
 
 		header20Data.FourScreen = (inputFile[6] & 0b00001000) == 0b00001000
@@ -252,13 +276,14 @@ func DecodeNESROM(inputFile []byte, enableInes bool, preserveTrainer bool, relat
 		header10Data.CHRROMSize = inputFile[5]
 		header10Data.CHRROMCalculatedSize = 8 * 1024 * uint64(header10Data.CHRROMSize)
 
-		prgRomData, chrRomData, err := getPrgRomAndChrRomData(romData.ROMData, header10Data.PRGROMCalculatedSize, header10Data.CHRROMCalculatedSize)
+		prgRomData, chrRomData, _, err := getSplitRomData(romData.ROMData, header10Data.PRGROMCalculatedSize, header10Data.CHRROMCalculatedSize)
 		if err != nil {
 			return romData, err
 		}
 
 		romData.PRGROMData = prgRomData
 		romData.CHRROMData = chrRomData
+		romData.MiscROMData = nil
 
 		header10Data.MirroringType = (inputFile[6] & 0b00000001) == 0b00000001
 		header10Data.Battery = (inputFile[6] & 0b00000010) == 0b00000010
@@ -267,6 +292,8 @@ func DecodeNESROM(inputFile []byte, enableInes bool, preserveTrainer bool, relat
 			header10Data.Trainer = false
 		} else {
 			header10Data.Trainer = (inputFile[6] & 0b00000100) == 0b00000100
+
+			header10Data.TrainerCalculatedSize = 512
 		}
 
 		header10Data.FourScreen = (inputFile[6] & 0b00001000) == 0b00001000
@@ -523,6 +550,18 @@ func UpdateSizes(nesRom *NESROM, prgCanonicalSize uint64, chrCanonicalSize uint6
 		if chrCanonicalSize == CHR_CANONICAL_SIZE_FACTORED {
 			nesRom.Header20.CHRROMCalculatedSize = (1 << nesRom.Header20.CHRROMSizeExponent) * uint64((nesRom.Header20.CHRROMSizeMultiplier*2)+1)
 		}
+
+		if nesRom.Header20.MiscROMs > 0 && nesRom.MiscROMData != nil && len(nesRom.MiscROMData) > 0 {
+			nesRom.Header20.MiscROMCalculatedSize = uint64(len(nesRom.MiscROMData))
+		} else {
+			nesRom.Header20.MiscROMCalculatedSize = 0
+		}
+
+		if nesRom.Header20.Trainer && nesRom.TrainerData != nil && len(nesRom.TrainerData) == 512 {
+			nesRom.Header20.TrainerCalculatedSize = 512
+		} else {
+			nesRom.Header20.TrainerCalculatedSize = 0
+		}
 	}
 
 	if nesRom.Header10 != nil {
@@ -548,6 +587,12 @@ func UpdateSizes(nesRom *NESROM, prgCanonicalSize uint64, chrCanonicalSize uint6
 
 		if chrCanonicalSize == CHR_CANONICAL_SIZE_FACTORED {
 			nesRom.Header10.CHRROMCalculatedSize = uint64(nesRom.Header10.CHRROMSize) * (8 * 1024)
+		}
+
+		if nesRom.Header10.Trainer && nesRom.TrainerData != nil && len(nesRom.TrainerData) == 512 {
+			nesRom.Header10.TrainerCalculatedSize = 512
+		} else {
+			nesRom.Header10.TrainerCalculatedSize = 0
 		}
 	}
 
@@ -588,6 +633,32 @@ func UpdateChecksums(nesRom *NESROM) error {
 			nesRom.Header20.CHRROMSHA1 = sha1.Sum(nesRom.CHRROMData)
 			nesRom.Header20.CHRROMSHA256 = sha256.Sum256(nesRom.CHRROMData)
 		}
+
+		if nesRom.MiscROMData != nil {
+			miscRomSum16, err := calculateSum16(nesRom.MiscROMData)
+			if err != nil {
+				return err
+			}
+
+			nesRom.Header20.MiscROMSum16 = miscRomSum16
+			nesRom.Header20.MiscROMCRC32 = crc32.ChecksumIEEE(nesRom.MiscROMData)
+			nesRom.Header20.MiscROMMD5 = md5.Sum(nesRom.MiscROMData)
+			nesRom.Header20.MiscROMSHA1 = sha1.Sum(nesRom.MiscROMData)
+			nesRom.Header20.MiscROMSHA256 = sha256.Sum256(nesRom.MiscROMData)
+		}
+
+		if nesRom.TrainerData != nil {
+			trainerSum16, err := calculateSum16(nesRom.TrainerData)
+			if err != nil {
+				return err
+			}
+
+			nesRom.Header20.TrainerSum16 = trainerSum16
+			nesRom.Header20.TrainerCRC32 = crc32.ChecksumIEEE(nesRom.TrainerData)
+			nesRom.Header20.TrainerMD5 = md5.Sum(nesRom.TrainerData)
+			nesRom.Header20.TrainerSHA1 = sha1.Sum(nesRom.TrainerData)
+			nesRom.Header20.TrainerSHA256 = sha256.Sum256(nesRom.TrainerData)
+		}
 	}
 
 	if nesRom.Header10 != nil {
@@ -615,6 +686,19 @@ func UpdateChecksums(nesRom *NESROM) error {
 			nesRom.Header10.CHRROMMD5 = md5.Sum(nesRom.CHRROMData)
 			nesRom.Header10.CHRROMSHA1 = sha1.Sum(nesRom.CHRROMData)
 			nesRom.Header10.CHRROMSHA256 = sha256.Sum256(nesRom.CHRROMData)
+		}
+
+		if nesRom.TrainerData != nil {
+			trainerSum16, err := calculateSum16(nesRom.TrainerData)
+			if err != nil {
+				return err
+			}
+
+			nesRom.Header10.TrainerSum16 = trainerSum16
+			nesRom.Header10.TrainerCRC32 = crc32.ChecksumIEEE(nesRom.TrainerData)
+			nesRom.Header10.TrainerMD5 = md5.Sum(nesRom.TrainerData)
+			nesRom.Header10.TrainerSHA1 = sha1.Sum(nesRom.TrainerData)
+			nesRom.Header10.TrainerSHA256 = sha256.Sum256(nesRom.TrainerData)
 		}
 	}
 
@@ -689,17 +773,22 @@ func calculateSum16(inputData []byte) (uint16, error) {
 	return uint16(byteSum), nil
 }
 
-func getPrgRomAndChrRomData(inputData []byte, prgRomSize uint64, chrRomSize uint64) ([]byte, []byte, error) {
+func getSplitRomData(inputData []byte, prgRomSize uint64, chrRomSize uint64) ([]byte, []byte, []byte, error) {
 	if inputData == nil {
-		return nil, nil, &NESROMError{text: "Cannot extract PRGROM and/or CHRROM data from a null segment."}
+		return nil, nil, nil, &NESROMError{text: "Cannot extract PRGROM and/or CHRROM data from a null segment."}
 	}
 
 	if len(inputData) < int(prgRomSize+chrRomSize) {
-		return nil, nil, &NESROMError{text: "Invalid PRGROM and/or CHRROM size(s) detected during extraction."}
+		return nil, nil, nil, &NESROMError{text: "Invalid PRGROM and/or CHRROM size(s) detected during extraction."}
 	}
 
 	prgRomData := inputData[0:prgRomSize]
 	chrRomData := inputData[prgRomSize:(prgRomSize + chrRomSize)]
+	miscRomData := make([]byte, 0)
 
-	return prgRomData, chrRomData, nil
+	if prgRomSize+chrRomSize < uint64(len(inputData)) {
+		miscRomData = inputData[(prgRomSize + chrRomSize):]
+	}
+
+	return prgRomData, chrRomData, miscRomData, nil
 }
