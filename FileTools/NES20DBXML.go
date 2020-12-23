@@ -1,3 +1,26 @@
+/*
+   Copyright 2020, Christopher Gelatt
+
+   This file is part of NES20Tool.
+
+   NES20Tool is free software: you can redistribute it and/or modify
+   it under the terms of the GNU Affero General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   NES20Tool is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU Affero General Public License for more details.
+
+   You should have received a copy of the GNU Affero General Public License
+   along with NES20Tool.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
+// https://forums.nesdev.com/viewtopic.php?f=3&t=19940
+// This implements the nes20db XML format for interchange
+// with tools which support it.
+
 package FileTools
 
 import (
@@ -96,6 +119,7 @@ type NES20DBGame struct {
 	} `xml:"trainer"`
 }
 
+// Take a map of NES 2.0 ROMs and marshal an XML file in nes20db format from them
 func MarshalNES20DBXMLFromROMMap(nesRoms map[string]*NES20Tool.NESROM) (string, error) {
 	romXml := &NES20DBXML{}
 
@@ -145,6 +169,7 @@ func MarshalNES20DBXMLFromROMMap(nesRoms map[string]*NES20Tool.NESROM) (string, 
 			tempGame.Pcb.Mapper = nesRoms[index].Header20.Mapper
 			tempGame.Pcb.Submapper = nesRoms[index].Header20.SubMapper
 
+			// This has weird special cases for mirroring
 			if tempGame.Pcb.Mapper == 30 {
 				if !nesRoms[index].Header20.FourScreen {
 					if !nesRoms[index].Header20.MirroringType {
@@ -245,6 +270,7 @@ func MarshalNES20DBXMLFromROMMap(nesRoms map[string]*NES20Tool.NESROM) (string, 
 	return returnString, nil
 }
 
+// Unmarshal an nes20db XML file to a map of NESROM structs, with their SHA1 checksum as the key
 func UnmarshalNES20DBXMLToROMMap(xmlPayload string) (map[string]*NES20Tool.NESROM, error) {
 	xmlStruct := &NES20DBXML{}
 	err := xml.Unmarshal([]byte(xmlPayload), xmlStruct)

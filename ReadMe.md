@@ -5,7 +5,9 @@ This tool is intended to read NES headers (giving a preference to 2.0 headers) a
 
 The tool uses the SHA256 hash of a ROM to determine which ROM the file contains, ignoring the existing iNES or NES 2.0 header currently on the ROM (if any; it also works with headerless ROMs for applying headers), as well as any trainer data.  Other hashes are calculated and provided in generated XML files for convenience, but they have no significant meaning within this application.
 
-This tool uses its own XML data format to include sufficient data about ROMs for both header application and organization, but also supports the [NES 2.0 XML Database](https://forums.nesdev.com/viewtopic.php?f=3&t=19940) format for header application.
+This tool uses its own XML data format to include sufficient data about ROMs for both header application and organization, but also supports the [NES 2.0 XML Database](https://forums.nesdev.com/viewtopic.php?f=3&t=19940) format for header application, for which it matches on SHA1 sums.
+
+Although matching against UNIF ROMs for applying headers is supported (which will convert the output ROMs to NES 2.0 or INES ROMs), the amount of work that would be required to add full support for all of the UNIF boards is far too high.  So, all that can be done with this tool for UNIF ROMs is to use them as a source ROM set for applying an existing XML file to transform them into NES 2.0 or INES ROMs.
 
 Known Issues and Potential Issues
 ---------------------------------

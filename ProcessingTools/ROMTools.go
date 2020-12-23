@@ -16,6 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with NES20Tool.  If not, see <https://www.gnu.org/licenses/>.
 */
+
 package ProcessingTools
 
 import (
@@ -35,6 +36,9 @@ var (
 	HASH_TYPE_SHA256 uint64 = 16
 )
 
+// Match a given ROM to a template ROM based on the hashing algorithm(s) specified.
+// Multiple hash types can be used via a bitwise OR operation.  Higher-complexity
+// algorithms are preferred over lower-complexity algorithms.
 func MatchNESROM(testRom *NES20Tool.NESROM, templateRomMap map[string]*NES20Tool.NESROM, hashTypeTests uint64, enableInes bool) (*NES20Tool.NESROM, error) {
 	if hashTypeTests&HASH_TYPE_SHA256 > 0 {
 		if templateRomMap["SHA256:"+strings.ToUpper(hex.EncodeToString(testRom.SHA256[:]))] != nil {
@@ -209,24 +213,27 @@ func MatchNESROM(testRom *NES20Tool.NESROM, templateRomMap map[string]*NES20Tool
 	return nil, errors.New("No match found for NES ROM: " + testRom.Name + "\nCRC32: " + strings.ToUpper(hex.EncodeToString(testRomCrc32Bytes)) + "\nSHA1: " + strings.ToUpper(hex.EncodeToString(testRom.SHA1[:])) + "\nSHA256: " + strings.ToUpper(hex.EncodeToString(testRom.SHA256[:])))
 }
 
-func UpdateNESROM(targetRom *NES20Tool.NESROM, templateRom *NES20Tool.NESROM, truncateRom bool, enableInes bool) error {
+// Update an NES ROM with info from a given template ROM.
+func UpdateNESROM(targetRom *NES20Tool.NESROM, templateRom *NES20Tool.NESROM, truncateRom bool, organizeRoms bool, enableInes bool) error {
 	if targetRom == nil || templateRom == nil {
 		return errors.New("Missing target or template NES ROM for update.")
 	}
 
 	if templateRom.Header20 != nil {
 		targetRom.Header20 = templateRom.Header20
+		targetRom.Header10 = nil
 	} else if enableInes && templateRom.Header10 != nil {
 		targetRom.Header10 = templateRom.Header10
+		targetRom.Header20 = nil
 	} else {
 		return errors.New("Unable to update ROM.")
 	}
 
-	if templateRom.Name != "" {
+	if templateRom.Name != "" && (organizeRoms || targetRom.Name == "") {
 		targetRom.Name = templateRom.Name
 	}
 
-	if templateRom.RelativePath != "" {
+	if templateRom.RelativePath != "" && (organizeRoms || targetRom.RelativePath == "") {
 		targetRom.RelativePath = templateRom.RelativePath
 	}
 
@@ -242,13 +249,14 @@ func UpdateNESROM(targetRom *NES20Tool.NESROM, templateRom *NES20Tool.NESROM, tr
 	return nil
 }
 
-func ProcessNESROMs(testRomList []*NES20Tool.NESROM, templateRomMap map[string]*NES20Tool.NESROM, hashTypeTests uint64, truncateRoms bool, enableInes bool) []*NES20Tool.NESROM {
+// Match and update a ROM to a template ROM from a map of potential template ROMs
+func ProcessNESROMs(testRomList []*NES20Tool.NESROM, templateRomMap map[string]*NES20Tool.NESROM, hashTypeTests uint64, truncateRoms bool, organizeRoms bool, enableInes bool) []*NES20Tool.NESROM {
 	returnRomList := make([]*NES20Tool.NESROM, 0)
 
 	for index := range testRomList {
 		tempRom, matchErr := MatchNESROM(testRomList[index], templateRomMap, hashTypeTests, enableInes)
 		if matchErr == nil {
-			updateErr := UpdateNESROM(testRomList[index], tempRom, truncateRoms, enableInes)
+			updateErr := UpdateNESROM(testRomList[index], tempRom, truncateRoms, organizeRoms, enableInes)
 			if updateErr == nil {
 				returnRomList = append(returnRomList, testRomList[index])
 			}
@@ -258,6 +266,9 @@ func ProcessNESROMs(testRomList []*NES20Tool.NESROM, templateRomMap map[string]*
 	return returnRomList
 }
 
+// Match an FDS ROM to a template ROM based on the specified hashing algorithm(s).
+// Algorithms can be bitwise ORed together to use multiple in order of descending
+// complexity.
 func MatchFDSROM(testRom *FDSTool.FDSArchiveFile, romList map[string]*FDSTool.FDSArchiveFile, hashTypeTests uint64) (*FDSTool.FDSArchiveFile, error) {
 	if hashTypeTests&HASH_TYPE_SHA256 > 0 {
 		if romList["SHA256:"+strings.ToUpper(hex.EncodeToString(testRom.SHA256[:]))] != nil {
@@ -290,24 +301,30 @@ func MatchFDSROM(testRom *FDSTool.FDSArchiveFile, romList map[string]*FDSTool.FD
 	return nil, errors.New("No match found for FDS ROM: " + testRom.Name + "\nCRC32: " + strings.ToUpper(hex.EncodeToString(testRomCrc32Bytes)) + "\nSHA1: " + strings.ToUpper(hex.EncodeToString(testRom.SHA1[:])) + "\nSHA256: " + strings.ToUpper(hex.EncodeToString(testRom.SHA256[:])))
 }
 
-func UpdateFDSROM(targetRom *FDSTool.FDSArchiveFile, templateRom *FDSTool.FDSArchiveFile) error {
+// Update an FDS ROM with metadata for where to be written for organizational purposes.
+// If a better way of determining matching FDS ROMs is developed in the future, this
+// may become more robust.
+func UpdateFDSROM(targetRom *FDSTool.FDSArchiveFile, templateRom *FDSTool.FDSArchiveFile, organizeRoms bool) error {
 	if targetRom == nil || templateRom == nil {
 		return errors.New("Missing target or template FDS ROM for update.")
 	}
 
-	targetRom.Name = templateRom.Name
-	targetRom.RelativePath = templateRom.RelativePath
+	if organizeRoms {
+		targetRom.Name = templateRom.Name
+		targetRom.RelativePath = templateRom.RelativePath
+	}
 
 	return nil
 }
 
-func ProcessFDSROMs(testRomList []*FDSTool.FDSArchiveFile, templateRomMap map[string]*FDSTool.FDSArchiveFile, hashTypeTests uint64) []*FDSTool.FDSArchiveFile {
+// Match and update an FDS ROM from a map of potential template FDS ROMs
+func ProcessFDSROMs(testRomList []*FDSTool.FDSArchiveFile, templateRomMap map[string]*FDSTool.FDSArchiveFile, hashTypeTests uint64, organizeRoms bool) []*FDSTool.FDSArchiveFile {
 	returnRomList := make([]*FDSTool.FDSArchiveFile, 0)
 
 	for index := range testRomList {
 		tempRom, matchErr := MatchFDSROM(testRomList[index], templateRomMap, hashTypeTests)
 		if matchErr == nil {
-			updateErr := UpdateFDSROM(testRomList[index], tempRom)
+			updateErr := UpdateFDSROM(testRomList[index], tempRom, organizeRoms)
 			if updateErr == nil {
 				returnRomList = append(returnRomList, testRomList[index])
 			}

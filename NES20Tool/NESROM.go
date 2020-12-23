@@ -16,6 +16,12 @@
    You should have received a copy of the GNU Affero General Public License
    along with NES20Tool.  If not, see <https://www.gnu.org/licenses/>.
 */
+
+// https://wiki.nesdev.com/w/index.php/NES_2.0
+// https://wiki.nesdev.com/w/index.php/INES
+// This implements the INES and NES 2.0 specifications, as described
+// in the formats above.
+
 package NES20Tool
 
 import (
@@ -141,19 +147,22 @@ type NESROM struct {
 }
 
 type NESROMError struct {
-	text string
+	Text string
 }
 
 func (r *NESROMError) Error() string {
-	return r.text
+	return r.Text
 }
 
+// Read data from a byte slice and decode it into an NESROM struct
 func DecodeNESROM(inputFile []byte, enableInes bool, preserveTrainer bool, relativeLocation string) (*NESROM, error) {
 	headerVersion := 2
 	fileSize := uint64(len(inputFile))
 	rawROMBytes, rawTrainerBytes, _ := getStrippedRom(inputFile)
 
 	romData := &NESROM{}
+
+	// Metadata, including checksums
 	romData.RelativePath = relativeLocation
 	romData.CRC32 = crc32.ChecksumIEEE(rawROMBytes)
 	romData.MD5 = md5.Sum(rawROMBytes)
@@ -167,25 +176,23 @@ func DecodeNESROM(inputFile []byte, enableInes bool, preserveTrainer bool, relat
 	}
 
 	if fileSize < 16 {
-		return romData, &NESROMError{text: "File too small to be a headered NES ROM."}
+		return romData, &NESROMError{Text: "File too small to be a headered NES ROM."}
 	}
 
 	if bytes.Compare(inputFile[0:4], []byte(NES_HEADER_MAGIC)) != 0 {
-		return romData, &NESROMError{text: "Unable to find NES magic."}
+		return romData, &NESROMError{Text: "Unable to find NES magic."}
 	}
 
 	if (inputFile[7]&NES_20_AND_MASK) != NES_20_AND_MASK || (inputFile[7]|NES_20_OR_MASK) != NES_20_OR_MASK {
 		if !enableInes {
-			return romData, &NESROMError{text: "Not an NES 2.0 ROM."}
+			return romData, &NESROMError{Text: "Not an NES 2.0 ROM."}
 		} else {
 			headerVersion = 1
 		}
 	}
 
-	header10Data := &NES10Header{}
-	header20Data := &NES20Header{}
-
 	if headerVersion == 2 {
+		header20Data := &NES20Header{}
 		if inputFile[9]&0b00001111 != 0b00001111 {
 			PRGROMBytes := make([]byte, 2)
 			PRGROMBytes[0] = inputFile[4]
@@ -275,6 +282,7 @@ func DecodeNESROM(inputFile []byte, enableInes bool, preserveTrainer bool, relat
 
 		romData.Header20 = header20Data
 	} else if headerVersion == 1 {
+		header10Data := &NES10Header{}
 		header10Data.PRGROMSize = inputFile[4]
 		header10Data.PRGROMCalculatedSize = 16 * 1024 * uint64(header10Data.PRGROMSize)
 		header10Data.CHRROMSize = inputFile[5]
@@ -317,6 +325,7 @@ func DecodeNESROM(inputFile []byte, enableInes bool, preserveTrainer bool, relat
 	return romData, nil
 }
 
+// Encode a byte slice from an NESROM struct
 func EncodeNESROM(romModel *NESROM, enableInes bool, truncateRom bool, preserveTrainer bool) ([]byte, error) {
 	headerVersion := 2
 
@@ -485,6 +494,9 @@ func EncodeNESROM(romModel *NESROM, enableInes bool, truncateRom bool, preserveT
 	return romBytes, nil
 }
 
+// Take a total byte size for a PRG or CHR rom and factor it into the possible
+// size notations for NES 2.0, giving preference to the non-exponential size
+// calculation.
 func FactorRomSize(romSize uint64, romType uint64) (uint16, uint8, uint8) {
 	var blockSize uint64
 	var sizeExponent uint8
@@ -532,6 +544,8 @@ func FactorRomSize(romSize uint64, romType uint64) (uint16, uint8, uint8) {
 	return 0, sizeExponent, sizeMultiplier
 }
 
+// Update size metadata based on the byte slice size, the total size of the segment in metadata, or the
+// factored exponential size of the segment in metadata
 func UpdateSizes(nesRom *NESROM, prgCanonicalSize uint64, chrCanonicalSize uint64) error {
 	if nesRom.ROMData != nil {
 		nesRom.Size = uint64(len(nesRom.ROMData))
@@ -610,6 +624,7 @@ func UpdateSizes(nesRom *NESROM, prgCanonicalSize uint64, chrCanonicalSize uint6
 	return nil
 }
 
+// Update the checksums for the various elements
 func UpdateChecksums(nesRom *NESROM) error {
 	if nesRom.ROMData != nil {
 		nesRom.CRC32 = crc32.ChecksumIEEE(nesRom.ROMData)
@@ -716,6 +731,8 @@ func UpdateChecksums(nesRom *NESROM) error {
 	return nil
 }
 
+// If we don't have any misc ROMs, then any extra data based the end of
+// the CHR ROM is probably garbage that we can truncate.
 func TruncateROMDataAndSections(rom *NESROM) {
 	if rom.Header20 != nil {
 		if uint64(len(rom.PRGROMData)) > rom.Header20.PRGROMCalculatedSize {
@@ -748,20 +765,21 @@ func TruncateROMDataAndSections(rom *NESROM) {
 	}
 }
 
+// Get the ROM without the header data, along with any trainer data included.
 func getStrippedRom(inputFile []byte) ([]byte, []byte, error) {
 	fileSize := uint64(len(inputFile))
 	if fileSize < 16 {
-		return inputFile, nil, &NESROMError{text: "File too small to be a headered NES ROM."}
+		return inputFile, nil, &NESROMError{Text: "File too small to be a headered NES ROM."}
 	}
 
 	if bytes.Compare(inputFile[0:4], []byte(NES_HEADER_MAGIC)) != 0 {
-		return inputFile, nil, &NESROMError{text: "Unable to find NES magic."}
+		return inputFile, nil, &NESROMError{Text: "Unable to find NES magic."}
 	}
 
 	hasTrainer := (inputFile[6] & 0b00000100) == 0b00000100
 
 	if hasTrainer && fileSize < 528 {
-		return inputFile, nil, &NESROMError{text: "Header indicates trainer data, but file too small for one."}
+		return inputFile, nil, &NESROMError{Text: "Header indicates trainer data, but file too small for one."}
 	}
 
 	if !hasTrainer {
@@ -771,9 +789,10 @@ func getStrippedRom(inputFile []byte) ([]byte, []byte, error) {
 	}
 }
 
+// Calculate the sum16 value used by Nintendo for production verification.
 func calculateSum16(inputData []byte) (uint16, error) {
 	if inputData == nil {
-		return 0, &NESROMError{text: "Cannot calculate sum16 for a null segment."}
+		return 0, &NESROMError{Text: "Cannot calculate sum16 for a null segment."}
 	}
 
 	var byteSum uint64 = 0
@@ -784,13 +803,14 @@ func calculateSum16(inputData []byte) (uint16, error) {
 	return uint16(byteSum), nil
 }
 
+// Get the PRG, CHR, and misc ROM data from the raw, headerless ROM data
 func getSplitRomData(inputData []byte, prgRomSize uint64, chrRomSize uint64) ([]byte, []byte, []byte, error) {
 	if inputData == nil {
-		return nil, nil, nil, &NESROMError{text: "Cannot extract PRGROM and/or CHRROM data from a null segment."}
+		return nil, nil, nil, &NESROMError{Text: "Cannot extract PRGROM and/or CHRROM data from a null segment."}
 	}
 
 	if len(inputData) < int(prgRomSize+chrRomSize) {
-		return nil, nil, nil, &NESROMError{text: "Invalid PRGROM and/or CHRROM size(s) detected during extraction."}
+		return nil, nil, nil, &NESROMError{Text: "Invalid PRGROM and/or CHRROM size(s) detected during extraction."}
 	}
 
 	prgRomData := inputData[0:prgRomSize]

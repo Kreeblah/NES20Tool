@@ -16,6 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with NES20Tool.  If not, see <https://www.gnu.org/licenses/>.
 */
+
 package FileTools
 
 import (
@@ -428,6 +429,7 @@ type FDSFileXMLFields struct {
 	} `xml:"fileData"`
 }
 
+// Marshal maps of NESROM and FDSArchiveFile structs to XML
 func MarshalXMLFromROMMap(nesRoms map[string]*NES20Tool.NESROM, fdsArchives map[string]*FDSTool.FDSArchiveFile, enableInes bool, preserveTrainer bool, enableOrganization bool) (string, error) {
 	romXml := &NESXML{}
 
@@ -473,6 +475,7 @@ func MarshalXMLFromROMMap(nesRoms map[string]*NES20Tool.NESROM, fdsArchives map[
 					tempXmlRom.Header20.Trainer.Sha1 = strings.ToUpper(hex.EncodeToString(nesRoms[key].Header20.TrainerSHA1[:]))
 					tempXmlRom.Header20.Trainer.Sha256 = strings.ToUpper(hex.EncodeToString(nesRoms[key].Header20.TrainerSHA256[:]))
 
+					// Trainers will always be 512 bytes long if they exist, so enforce that.
 					if len(nesRoms[key].TrainerData) == 512 {
 						tempXmlRom.Header20.Trainer.Size = 512
 						tempXmlRom.TrainerData.Text = strings.ToUpper(hex.EncodeToString(nesRoms[key].TrainerData))
@@ -596,6 +599,7 @@ func MarshalXMLFromROMMap(nesRoms map[string]*NES20Tool.NESROM, fdsArchives map[
 					tempXmlRom.Header10.Trainer.Sha1 = strings.ToUpper(hex.EncodeToString(nesRoms[key].Header10.TrainerSHA1[:]))
 					tempXmlRom.Header10.Trainer.Sha256 = strings.ToUpper(hex.EncodeToString(nesRoms[key].Header10.TrainerSHA256[:]))
 
+					// Trainers will always be 512 bytes long if they exist, so enforce that.
 					if len(nesRoms[key].TrainerData) == 512 {
 						tempXmlRom.Header10.Trainer.Size = 512
 						tempXmlRom.TrainerData.Text = strings.ToUpper(hex.EncodeToString(nesRoms[key].TrainerData))
@@ -763,6 +767,7 @@ func MarshalXMLFromROMMap(nesRoms map[string]*NES20Tool.NESROM, fdsArchives map[
 	return string(xmlBytes), nil
 }
 
+// Unmarshal an XML file to maps of NESROM and FDSArchiveFile structs
 func UnmarshalXMLToROMMap(xmlPayload string, enableInes bool, preserveTrainer bool, enableOrganization bool) (map[string]*NES20Tool.NESROM, map[string]*FDSTool.FDSArchiveFile, error) {
 	xmlStruct := &NESXML{}
 	err := xml.Unmarshal([]byte(xmlPayload), xmlStruct)

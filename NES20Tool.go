@@ -16,6 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with NES20Tool.  If not, see <https://www.gnu.org/licenses/>.
 */
+
 package main
 
 import (
@@ -30,6 +31,7 @@ import (
 )
 
 func main() {
+	// Parse the CLI options
 	romSetEnableFDS := flag.Bool("enable-fds", false, "Enable FDS support.")
 	romSetEnableFDSHeaders := flag.Bool("enable-fds-headers", false, "Enable writing FDS headers for organization.")
 	romSetEnableV1 := flag.Bool("enable-ines", false, "Enable iNES header support.  iNES headers will always be lower priority for operations than NES 2.0 headers.")
@@ -45,6 +47,7 @@ func main() {
 
 	flag.Parse()
 
+	// Options validation
 	if *romSetCommand != "read" && *romSetCommand != "write" {
 		printUsage()
 		os.Exit(1)
@@ -65,12 +68,14 @@ func main() {
 		os.Exit(1)
 	}
 
+	// nes20db functionality is only for NES 2.0 ROMs
 	if *xmlFormat == "nes20db" {
 		*romSetEnableV1 = false
 		*romSetEnableFDS = false
 		*romSetOrganization = false
 	}
 
+	// Get the aboslute path for easier calculation of relative ROM paths
 	if *romOutputBasePath != "" {
 		tempOutputPath, err := filepath.Abs(*romOutputBasePath)
 		if err != nil {
@@ -89,6 +94,7 @@ func main() {
 		*romSetSourceDirectory = tempSourceDirectory
 	}
 
+	// Read a directory structure and generate an XML file to represent it
 	if *romSetCommand == "read" {
 		println("Loading NES 2.0 ROMs from: " + *romSetSourceDirectory)
 		romMap, err := FileTools.LoadROMRecursiveMap(*romSetSourceDirectory, *romSetEnableV1, *romSetPreserveTrainers, ProcessingTools.HASH_TYPE_SHA256)
@@ -128,6 +134,9 @@ func main() {
 		}
 
 		os.Exit(0)
+
+	// Read an XML file and a source ROM set, match the ROMs in it, and
+	// write out a ROM set in a destination location.
 	} else if *romSetCommand == "write" {
 		println("Loading XML file from: " + *romSetXmlFile)
 		xmlPayload, err := ioutil.ReadFile(*romSetXmlFile)
@@ -162,7 +171,17 @@ func main() {
 			panic(err)
 		}
 
-		matchedRoms := ProcessingTools.ProcessNESROMs(rawRoms, romData, hashTypeMatch, *romSetTruncateRoms, *romSetEnableV1)
+		matchedRoms := ProcessingTools.ProcessNESROMs(rawRoms, romData, hashTypeMatch, *romSetTruncateRoms, *romSetOrganization, *romSetEnableV1)
+
+		println("Processing UNIF ROMs in: " + *romSetSourceDirectory)
+		rawUnifs, err := FileTools.LoadUNIFRecursive(*romSetSourceDirectory)
+		if err != nil {
+			panic(err)
+		}
+
+		matchedUnifs := ProcessingTools.ProcessNESROMs(rawUnifs, romData, hashTypeMatch, *romSetTruncateRoms, *romSetOrganization, *romSetEnableV1)
+
+		matchedRoms = append(matchedRoms, matchedUnifs...)
 
 		rawArchives := make([]*FDSTool.FDSArchiveFile, 0)
 		matchedArchives := make([]*FDSTool.FDSArchiveFile, 0)
@@ -174,7 +193,7 @@ func main() {
 				panic(err)
 			}
 
-			matchedArchives = ProcessingTools.ProcessFDSROMs(rawArchives, archiveData, ProcessingTools.HASH_TYPE_SHA256)
+			matchedArchives = ProcessingTools.ProcessFDSROMs(rawArchives, archiveData, ProcessingTools.HASH_TYPE_SHA256, *romSetOrganization)
 		}
 
 		tempBasePath := *romOutputBasePath
@@ -183,19 +202,29 @@ func main() {
 		}
 
 		for index := range matchedRoms {
+			tempFilename := matchedRoms[index].Filename
+			if tempFilename == "" {
+				tempFilename = matchedRoms[index].Name + ".nes"
+			}
+
+			tempRelativePath := matchedRoms[index].RelativePath
+			if tempRelativePath == "" {
+				tempRelativePath = matchedRoms[index].Name + ".nes"
+			}
+
 			if *romOutputBasePath == "" {
-				println("Writing NES ROM: " + matchedRoms[index].Filename)
+				println("Writing NES ROM: " + tempFilename)
 			} else {
-				println("Writing NES ROM: " + tempBasePath + matchedRoms[index].RelativePath)
+				println("Writing NES ROM: " + tempBasePath + tempRelativePath)
 			}
 
 			if matchedRoms[index].Header20 != nil || (*romSetEnableV1 && matchedRoms[index].Header10 != nil) {
 				err = FileTools.WriteROM(matchedRoms[index], *romSetEnableV1, *romSetTruncateRoms, *romSetPreserveTrainers, *romOutputBasePath)
 				if err != nil {
 					if *romOutputBasePath == "" {
-						println("Error writing ROM: " + matchedRoms[index].Filename)
+						println("Error writing ROM: " + tempFilename)
 					} else {
-						println("Error writing ROM: " + *romOutputBasePath + string(os.PathSeparator) + matchedRoms[index].RelativePath)
+						println("Error writing ROM: " + *romOutputBasePath + string(os.PathSeparator) + tempRelativePath)
 					}
 					println(err.Error())
 				}
@@ -203,18 +232,28 @@ func main() {
 		}
 
 		for index := range matchedArchives {
+			tempFilename := matchedArchives[index].Filename
+			if tempFilename == "" {
+				tempFilename = matchedArchives[index].Name + ".nes"
+			}
+
+			tempRelativePath := matchedArchives[index].RelativePath
+			if tempRelativePath == "" {
+				tempRelativePath = matchedArchives[index].Name + ".nes"
+			}
+
 			if *romOutputBasePath == "" {
-				println("Writing FDS archive: " + matchedArchives[index].Filename)
+				println("Writing FDS archive: " + tempFilename)
 			} else {
-				println("Writing FDS archive: " + tempBasePath + matchedArchives[index].RelativePath)
+				println("Writing FDS archive: " + tempBasePath + tempRelativePath)
 			}
 
 			err = FileTools.WriteFDSArchive(matchedArchives[index], *romSetEnableFDSHeaders, *romOutputBasePath)
 			if err != nil {
 				if *romOutputBasePath == "" {
-					println("Error writing FDS archive: " + matchedArchives[index].Filename)
+					println("Error writing FDS archive: " + tempFilename)
 				} else {
-					println("Error writing FDS archive: " + tempBasePath + matchedArchives[index].RelativePath)
+					println("Error writing FDS archive: " + tempBasePath + tempRelativePath)
 				}
 				println(err.Error())
 			}
@@ -224,6 +263,7 @@ func main() {
 	}
 }
 
+// Show the usage options.
 func printUsage() {
 	println("This utility reads a ROM set which has NES 2.0 headers and")
 	println("generates an XML file to describe them, or reads an XML file")
