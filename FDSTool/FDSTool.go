@@ -1,20 +1,20 @@
 /*
    Copyright 2020, Christopher Gelatt
 
-   This file is part of NES20Tool.
+   This file is part of NESTool.
 
-   NES20Tool is free software: you can redistribute it and/or modify
+   NESTool is free software: you can redistribute it and/or modify
    it under the terms of the GNU Affero General Public License as published by
    the Free Software Foundation, either version 3 of the License, or
    (at your option) any later version.
 
-   NES20Tool is distributed in the hope that it will be useful,
+   NESTool is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with NES20Tool.  If not, see <https://www.gnu.org/licenses/>.
+   along with NESTool.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 // https://wiki.nesdev.com/w/index.php/FDS_file_format
@@ -35,7 +35,7 @@
 package FDSTool
 
 import (
-	"NES20Tool/NES20Tool"
+	"NES20Tool/NESTool"
 	"bytes"
 	"crypto/md5"
 	"crypto/sha1"
@@ -789,7 +789,7 @@ func decodeBcdByte(bcdByte byte) uint16 {
 // Encodes values 0 - 99 to a BCD byte
 func encodeBcdByte(bcdInt uint8) (byte, error) {
 	if bcdInt > 99 {
-		return 0, &NES20Tool.NESROMError{Text: strconv.Itoa(int(bcdInt)) + " is too large to be packed into a BCD byte."}
+		return 0, &NESTool.NESROMError{Text: strconv.Itoa(int(bcdInt)) + " is too large to be packed into a BCD byte."}
 	}
 	leastSignificantNibble := bcdInt % 10
 	mostSignificantNibble := bcdInt / 10

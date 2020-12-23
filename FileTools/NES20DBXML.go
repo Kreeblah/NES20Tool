@@ -1,20 +1,20 @@
 /*
    Copyright 2020, Christopher Gelatt
 
-   This file is part of NES20Tool.
+   This file is part of NESTool.
 
-   NES20Tool is free software: you can redistribute it and/or modify
+   NESTool is free software: you can redistribute it and/or modify
    it under the terms of the GNU Affero General Public License as published by
    the Free Software Foundation, either version 3 of the License, or
    (at your option) any later version.
 
-   NES20Tool is distributed in the hope that it will be useful,
+   NESTool is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with NES20Tool.  If not, see <https://www.gnu.org/licenses/>.
+   along with NESTool.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 // https://forums.nesdev.com/viewtopic.php?f=3&t=19940
@@ -24,7 +24,7 @@
 package FileTools
 
 import (
-	"NES20Tool/NES20Tool"
+	"NES20Tool/NESTool"
 	"encoding/binary"
 	"encoding/hex"
 	"encoding/xml"
@@ -120,7 +120,7 @@ type NES20DBGame struct {
 }
 
 // Take a map of NES 2.0 ROMs and marshal an XML file in nes20db format from them
-func MarshalNES20DBXMLFromROMMap(nesRoms map[string]*NES20Tool.NESROM) (string, error) {
+func MarshalNES20DBXMLFromROMMap(nesRoms map[string]*NESTool.NESROM) (string, error) {
 	romXml := &NES20DBXML{}
 
 	romXml.Date = time.Now().Format("2006-01-02")
@@ -271,17 +271,17 @@ func MarshalNES20DBXMLFromROMMap(nesRoms map[string]*NES20Tool.NESROM) (string, 
 }
 
 // Unmarshal an nes20db XML file to a map of NESROM structs, with their SHA1 checksum as the key
-func UnmarshalNES20DBXMLToROMMap(xmlPayload string) (map[string]*NES20Tool.NESROM, error) {
+func UnmarshalNES20DBXMLToROMMap(xmlPayload string) (map[string]*NESTool.NESROM, error) {
 	xmlStruct := &NES20DBXML{}
 	err := xml.Unmarshal([]byte(xmlPayload), xmlStruct)
 	if err != nil {
 		return nil, err
 	}
 
-	romMap := make(map[string]*NES20Tool.NESROM)
+	romMap := make(map[string]*NESTool.NESROM)
 
 	for index := range xmlStruct.Games {
-		tempRom := &NES20Tool.NESROM{}
+		tempRom := &NESTool.NESROM{}
 
 		tempRom.Size = xmlStruct.Games[index].Rom.Size
 
@@ -295,7 +295,7 @@ func UnmarshalNES20DBXMLToROMMap(xmlPayload string) (map[string]*NES20Tool.NESRO
 			copy(tempRom.SHA1[:], sha1Bytes)
 		}
 
-		tempRomHeader20 := &NES20Tool.NES20Header{}
+		tempRomHeader20 := &NESTool.NES20Header{}
 		tempRom.Header20 = tempRomHeader20
 
 		tempRom.Header20.PRGROMCalculatedSize = xmlStruct.Games[index].Prgrom.Size
@@ -474,7 +474,7 @@ func UnmarshalNES20DBXMLToROMMap(xmlPayload string) (map[string]*NES20Tool.NESRO
 			tempRom.Header20.CHRNVRAMSize = 0
 		}
 
-		err = NES20Tool.UpdateSizes(tempRom, NES20Tool.PRG_CANONICAL_SIZE_CALCULATED, NES20Tool.CHR_CANONICAL_SIZE_CALCULATED)
+		err = NESTool.UpdateSizes(tempRom, NESTool.PRG_CANONICAL_SIZE_CALCULATED, NESTool.CHR_CANONICAL_SIZE_CALCULATED)
 		if err != nil {
 			return nil, err
 		}

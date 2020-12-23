@@ -1,27 +1,27 @@
 /*
    Copyright 2020, Christopher Gelatt
 
-   This file is part of NES20Tool.
+   This file is part of NESTool.
 
-   NES20Tool is free software: you can redistribute it and/or modify
+   NESTool is free software: you can redistribute it and/or modify
    it under the terms of the GNU Affero General Public License as published by
    the Free Software Foundation, either version 3 of the License, or
    (at your option) any later version.
 
-   NES20Tool is distributed in the hope that it will be useful,
+   NESTool is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with NES20Tool.  If not, see <https://www.gnu.org/licenses/>.
+   along with NESTool.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 package ProcessingTools
 
 import (
 	"NES20Tool/FDSTool"
-	"NES20Tool/NES20Tool"
+	"NES20Tool/NESTool"
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
@@ -39,7 +39,7 @@ var (
 // Match a given ROM to a template ROM based on the hashing algorithm(s) specified.
 // Multiple hash types can be used via a bitwise OR operation.  Higher-complexity
 // algorithms are preferred over lower-complexity algorithms.
-func MatchNESROM(testRom *NES20Tool.NESROM, templateRomMap map[string]*NES20Tool.NESROM, hashTypeTests uint64, enableInes bool) (*NES20Tool.NESROM, error) {
+func MatchNESROM(testRom *NESTool.NESROM, templateRomMap map[string]*NESTool.NESROM, hashTypeTests uint64, enableInes bool) (*NESTool.NESROM, error) {
 	if hashTypeTests&HASH_TYPE_SHA256 > 0 {
 		if templateRomMap["SHA256:"+strings.ToUpper(hex.EncodeToString(testRom.SHA256[:]))] != nil {
 			return templateRomMap["SHA256:"+strings.ToUpper(hex.EncodeToString(testRom.SHA256[:]))], nil
@@ -214,7 +214,7 @@ func MatchNESROM(testRom *NES20Tool.NESROM, templateRomMap map[string]*NES20Tool
 }
 
 // Update an NES ROM with info from a given template ROM.
-func UpdateNESROM(targetRom *NES20Tool.NESROM, templateRom *NES20Tool.NESROM, truncateRom bool, organizeRoms bool, enableInes bool) error {
+func UpdateNESROM(targetRom *NESTool.NESROM, templateRom *NESTool.NESROM, truncateRom bool, organizeRoms bool, enableInes bool) error {
 	if targetRom == nil || templateRom == nil {
 		return errors.New("Missing target or template NES ROM for update.")
 	}
@@ -243,15 +243,15 @@ func UpdateNESROM(targetRom *NES20Tool.NESROM, templateRom *NES20Tool.NESROM, tr
 	targetRom.CRC32 = templateRom.CRC32
 
 	if truncateRom {
-		NES20Tool.TruncateROMDataAndSections(targetRom)
+		NESTool.TruncateROMDataAndSections(targetRom)
 	}
 
 	return nil
 }
 
 // Match and update a ROM to a template ROM from a map of potential template ROMs
-func ProcessNESROMs(testRomList []*NES20Tool.NESROM, templateRomMap map[string]*NES20Tool.NESROM, hashTypeTests uint64, truncateRoms bool, organizeRoms bool, enableInes bool) []*NES20Tool.NESROM {
-	returnRomList := make([]*NES20Tool.NESROM, 0)
+func ProcessNESROMs(testRomList []*NESTool.NESROM, templateRomMap map[string]*NESTool.NESROM, hashTypeTests uint64, truncateRoms bool, organizeRoms bool, enableInes bool) []*NESTool.NESROM {
+	returnRomList := make([]*NESTool.NESROM, 0)
 
 	for index := range testRomList {
 		tempRom, matchErr := MatchNESROM(testRomList[index], templateRomMap, hashTypeTests, enableInes)

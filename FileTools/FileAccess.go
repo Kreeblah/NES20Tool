@@ -1,27 +1,27 @@
 /*
    Copyright 2020, Christopher Gelatt
 
-   This file is part of NES20Tool.
+   This file is part of NESTool.
 
-   NES20Tool is free software: you can redistribute it and/or modify
+   NESTool is free software: you can redistribute it and/or modify
    it under the terms of the GNU Affero General Public License as published by
    the Free Software Foundation, either version 3 of the License, or
    (at your option) any later version.
 
-   NES20Tool is distributed in the hope that it will be useful,
+   NESTool is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with NES20Tool.  If not, see <https://www.gnu.org/licenses/>.
+   along with NESTool.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 package FileTools
 
 import (
 	"NES20Tool/FDSTool"
-	"NES20Tool/NES20Tool"
+	"NES20Tool/NESTool"
 	"NES20Tool/ProcessingTools"
 	"NES20Tool/UNIFTool"
 	"bufio"
@@ -76,13 +76,13 @@ func LoadFile(fileName string, basePath string) ([]byte, string, error) {
 }
 
 // Read in an INES or NES 2.0 ROM and decode it into an NESROM struct
-func LoadROM(fileName string, enableInes bool, preserveTrainer bool, basePath string) (*NES20Tool.NESROM, error) {
+func LoadROM(fileName string, enableInes bool, preserveTrainer bool, basePath string) (*NESTool.NESROM, error) {
 	byteSlice, relativePath, err := LoadFile(fileName, basePath)
 	if err != nil {
 		return nil, err
 	}
 
-	decodedRom, err := NES20Tool.DecodeNESROM(byteSlice, enableInes, preserveTrainer, relativePath)
+	decodedRom, err := NESTool.DecodeNESROM(byteSlice, enableInes, preserveTrainer, relativePath)
 	if decodedRom != nil {
 		decodedRom.Filename = fileName
 		tempName := filepath.Base(fileName)
@@ -98,7 +98,7 @@ func LoadROM(fileName string, enableInes bool, preserveTrainer bool, basePath st
 }
 
 // Read in a UNIF ROM and decode it into an NESROM struct
-func LoadUNIF(fileName string, basePath string) (*NES20Tool.NESROM, error) {
+func LoadUNIF(fileName string, basePath string) (*NESTool.NESROM, error) {
 	byteSlice, _, err := LoadFile(fileName, basePath)
 	if err != nil {
 		return nil, err
@@ -144,8 +144,8 @@ func LoadFDSArchive(fileName string, basePath string, generateChecksums bool) (*
 }
 
 // Read in INES and NES 2.0 files recursively from a given path
-func LoadROMRecursive(basePath string, enableInes bool, preserveTrainers bool) ([]*NES20Tool.NESROM, error) {
-	romSlice := make([]*NES20Tool.NESROM, 0)
+func LoadROMRecursive(basePath string, enableInes bool, preserveTrainers bool) ([]*NESTool.NESROM, error) {
+	romSlice := make([]*NESTool.NESROM, 0)
 	nesRegEx, err := regexp.Compile("^.+\\.nes$")
 	if err != nil {
 		return nil, err
@@ -165,7 +165,7 @@ func LoadROMRecursive(basePath string, enableInes bool, preserveTrainers bool) (
 			tempRom, err := LoadROM(path, enableInes, preserveTrainers, basePath)
 			if err != nil {
 				switch err.(type) {
-				case *NES20Tool.NESROMError:
+				case *NESTool.NESROMError:
 					break
 				default:
 					return err
@@ -189,8 +189,8 @@ func LoadROMRecursive(basePath string, enableInes bool, preserveTrainers bool) (
 }
 
 // Read in UNIF files recursively from a given base path
-func LoadUNIFRecursive(basePath string) ([]*NES20Tool.NESROM, error) {
-	romSlice := make([]*NES20Tool.NESROM, 0)
+func LoadUNIFRecursive(basePath string) ([]*NESTool.NESROM, error) {
+	romSlice := make([]*NESTool.NESROM, 0)
 	unifRegEx, err := regexp.Compile("^.+\\.unif$")
 	if err != nil {
 		return nil, err
@@ -215,7 +215,7 @@ func LoadUNIFRecursive(basePath string) ([]*NES20Tool.NESROM, error) {
 			tempRom, err := LoadUNIF(path, basePath)
 			if err != nil {
 				switch err.(type) {
-				case *NES20Tool.NESROMError:
+				case *NESTool.NESROMError:
 					break
 				default:
 					return err
@@ -284,18 +284,18 @@ func LoadFDSArchiveRecursive(basePath string, generateChecksums bool) ([]*FDSToo
 }
 
 // Read in INES and NES 2.0 ROMs recursively and add them to a map, with checksums as keys
-func LoadROMRecursiveMap(basePath string, enableInes bool, preserveTrainers bool, hashTypes uint64) (map[string]*NES20Tool.NESROM, error) {
+func LoadROMRecursiveMap(basePath string, enableInes bool, preserveTrainers bool, hashTypes uint64) (map[string]*NESTool.NESROM, error) {
 	romSlice, err := LoadROMRecursive(basePath, enableInes, preserveTrainers)
 	if err != nil {
 		switch err.(type) {
-		case *NES20Tool.NESROMError:
+		case *NESTool.NESROMError:
 			break
 		default:
 			return nil, err
 		}
 	}
 
-	romMap := make(map[string]*NES20Tool.NESROM)
+	romMap := make(map[string]*NESTool.NESROM)
 
 	for index := range romSlice {
 		if hashTypes&ProcessingTools.HASH_TYPE_SHA256 > 0 {
@@ -330,18 +330,18 @@ func LoadROMRecursiveMap(basePath string, enableInes bool, preserveTrainers bool
 }
 
 // Read in UNIF files recursively and add them to a map, with checksums as keys
-func LoadUNIFRecursiveMap(basePath string, hashTypes uint64) (map[string]*NES20Tool.NESROM, error) {
+func LoadUNIFRecursiveMap(basePath string, hashTypes uint64) (map[string]*NESTool.NESROM, error) {
 	romSlice, err := LoadUNIFRecursive(basePath)
 	if err != nil {
 		switch err.(type) {
-		case *NES20Tool.NESROMError:
+		case *NESTool.NESROMError:
 			break
 		default:
 			return nil, err
 		}
 	}
 
-	romMap := make(map[string]*NES20Tool.NESROM)
+	romMap := make(map[string]*NESTool.NESROM)
 
 	for index := range romSlice {
 		if hashTypes&ProcessingTools.HASH_TYPE_SHA256 > 0 {
@@ -422,8 +422,8 @@ func LoadFDSArchiveRecursiveMap(basePath string, generateChecksums bool, hashTyp
 }
 
 // Encode and write an NES ROM to disk
-func WriteROM(romModel *NES20Tool.NESROM, enableInes bool, truncateRom bool, preserveTrainer bool, destinationBasePath string) error {
-	nesRomBytes, err := NES20Tool.EncodeNESROM(romModel, enableInes, truncateRom, preserveTrainer)
+func WriteROM(romModel *NESTool.NESROM, enableInes bool, truncateRom bool, preserveTrainer bool, destinationBasePath string) error {
+	nesRomBytes, err := NESTool.EncodeNESROM(romModel, enableInes, truncateRom, preserveTrainer)
 	if err != nil {
 		return err
 	}

@@ -1,27 +1,27 @@
 /*
    Copyright 2020, Christopher Gelatt
 
-   This file is part of NES20Tool.
+   This file is part of NESTool.
 
-   NES20Tool is free software: you can redistribute it and/or modify
+   NESTool is free software: you can redistribute it and/or modify
    it under the terms of the GNU Affero General Public License as published by
    the Free Software Foundation, either version 3 of the License, or
    (at your option) any later version.
 
-   NES20Tool is distributed in the hope that it will be useful,
+   NESTool is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with NES20Tool.  If not, see <https://www.gnu.org/licenses/>.
+   along with NESTool.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 package FileTools
 
 import (
 	"NES20Tool/FDSTool"
-	"NES20Tool/NES20Tool"
+	"NES20Tool/NESTool"
 	"encoding/binary"
 	"encoding/hex"
 	"encoding/xml"
@@ -430,7 +430,7 @@ type FDSFileXMLFields struct {
 }
 
 // Marshal maps of NESROM and FDSArchiveFile structs to XML
-func MarshalXMLFromROMMap(nesRoms map[string]*NES20Tool.NESROM, fdsArchives map[string]*FDSTool.FDSArchiveFile, enableInes bool, preserveTrainer bool, enableOrganization bool) (string, error) {
+func MarshalXMLFromROMMap(nesRoms map[string]*NESTool.NESROM, fdsArchives map[string]*FDSTool.FDSArchiveFile, enableInes bool, preserveTrainer bool, enableOrganization bool) (string, error) {
 	romXml := &NESXML{}
 
 	for key := range nesRoms {
@@ -768,18 +768,18 @@ func MarshalXMLFromROMMap(nesRoms map[string]*NES20Tool.NESROM, fdsArchives map[
 }
 
 // Unmarshal an XML file to maps of NESROM and FDSArchiveFile structs
-func UnmarshalXMLToROMMap(xmlPayload string, enableInes bool, preserveTrainer bool, enableOrganization bool) (map[string]*NES20Tool.NESROM, map[string]*FDSTool.FDSArchiveFile, error) {
+func UnmarshalXMLToROMMap(xmlPayload string, enableInes bool, preserveTrainer bool, enableOrganization bool) (map[string]*NESTool.NESROM, map[string]*FDSTool.FDSArchiveFile, error) {
 	xmlStruct := &NESXML{}
 	err := xml.Unmarshal([]byte(xmlPayload), xmlStruct)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	romMap := make(map[string]*NES20Tool.NESROM)
+	romMap := make(map[string]*NESTool.NESROM)
 	archiveMap := make(map[string]*FDSTool.FDSArchiveFile)
 
 	for index := range xmlStruct.XMLROMs {
-		tempRom := &NES20Tool.NESROM{}
+		tempRom := &NESTool.NESROM{}
 
 		crc32Bytes, err := hex.DecodeString(strings.ToLower(xmlStruct.XMLROMs[index].Crc32))
 		if err == nil {
@@ -811,7 +811,7 @@ func UnmarshalXMLToROMMap(xmlPayload string, enableInes bool, preserveTrainer bo
 		}
 
 		if xmlStruct.XMLROMs[index].Header20 != nil {
-			tempRomHeader20 := &NES20Tool.NES20Header{}
+			tempRomHeader20 := &NESTool.NES20Header{}
 			tempRom.Header20 = tempRomHeader20
 
 			if xmlStruct.XMLROMs[index].Header20.Prgrom.Size > 0 {
@@ -895,7 +895,7 @@ func UnmarshalXMLToROMMap(xmlPayload string, enableInes bool, preserveTrainer bo
 			tempRom.Header20.MiscROMs = xmlStruct.XMLROMs[index].Header20.MiscRoms.Value
 			tempRom.Header20.DefaultExpansion = xmlStruct.XMLROMs[index].Header20.DefaultExpansion.Value
 
-			err = NES20Tool.UpdateSizes(tempRom, NES20Tool.PRG_CANONICAL_SIZE_FACTORED, NES20Tool.CHR_CANONICAL_SIZE_FACTORED)
+			err = NESTool.UpdateSizes(tempRom, NESTool.PRG_CANONICAL_SIZE_FACTORED, NESTool.CHR_CANONICAL_SIZE_FACTORED)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -978,7 +978,7 @@ func UnmarshalXMLToROMMap(xmlPayload string, enableInes bool, preserveTrainer bo
 
 			romMap["SHA256:"+strings.ToUpper(hex.EncodeToString(tempRom.SHA256[:]))] = tempRom
 		} else if enableInes && xmlStruct.XMLROMs[index].Header10 != nil {
-			tempRomHeader10 := &NES20Tool.NES10Header{}
+			tempRomHeader10 := &NESTool.NES10Header{}
 			tempRom.Header10 = tempRomHeader10
 
 			tempRom.Header10.PRGROMSize = xmlStruct.XMLROMs[index].Header10.Prgrom.Size
@@ -1044,7 +1044,7 @@ func UnmarshalXMLToROMMap(xmlPayload string, enableInes bool, preserveTrainer bo
 			tempRom.Header10.PRGRAMSize = xmlStruct.XMLROMs[index].Header10.Prgram.Size
 			tempRom.Header10.TVSystem = xmlStruct.XMLROMs[index].Header10.TvSystem.Value
 
-			err = NES20Tool.UpdateSizes(tempRom, NES20Tool.PRG_CANONICAL_SIZE_FACTORED, NES20Tool.CHR_CANONICAL_SIZE_FACTORED)
+			err = NESTool.UpdateSizes(tempRom, NESTool.PRG_CANONICAL_SIZE_FACTORED, NESTool.CHR_CANONICAL_SIZE_FACTORED)
 			if err != nil {
 				return nil, nil, err
 			}
