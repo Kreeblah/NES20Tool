@@ -1,27 +1,46 @@
 /*
    Copyright 2020, Christopher Gelatt
+
    This file is part of NES20Tool.
+
    NES20Tool is free software: you can redistribute it and/or modify
    it under the terms of the GNU Affero General Public License as published by
    the Free Software Foundation, either version 3 of the License, or
    (at your option) any later version.
+
    NES20Tool is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU Affero General Public License for more details.
+
    You should have received a copy of the GNU Affero General Public License
    along with NES20Tool.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+// https://wiki.nesdev.com/w/index.php/FDS_file_format
+// This file uses the FDS file format as a reference for
+// the FDS header portion (which is trivial).
+
+// https://wiki.nesdev.com/w/index.php/FDS_disk_format
+// It also uses the FDS disk format for parsing the fields
+// and data chunks of the FDS disks.  It also supports QD
+// disks, the only difference seeming to be that they're
+// 65,536 bytes instead of 65,500 bytes.
+
+// http://forums.nesdev.com/viewtopic.php?p=194867
+// On the off chance that anybody wants to calculate FDS
+// CRCs, this also uses the algorithm mentioned here
+// to do that.
+
 package FDSTool
 
 import (
+	"NES20Tool/NES20Tool"
 	"bytes"
 	"crypto/md5"
 	"crypto/sha1"
 	"crypto/sha256"
 	"encoding/binary"
-	"errors"
 	"hash/crc32"
 	"sort"
 	"strconv"
@@ -29,16 +48,16 @@ import (
 )
 
 var (
-	FDS_SIDE_SIZE              = 65500
-	QD_SIDE_SIZE               = 65536
-	FDS_DISK_INFO_BLOCK        = 1
-	FDS_DISK_FILE_LAYOUT_BLOCK = 2
-	FDS_FILE_HEADER_BLOCK      = 3
-	FDS_FILE_DATA_BLOCK        = 4
-	FDS_EPOCH                  = 1925
-	FDS_HEADER_MAGIC           = "\x46\x44\x53\x1a"
-	FDS_HEADER_PADDING         = "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
-	FDS_MAGIC                  = "*NINTENDO-HVC*"
+	FDS_SIDE_SIZE              uint64 = 65500
+	QD_SIDE_SIZE               uint64 = 65536
+	FDS_DISK_INFO_BLOCK        uint64 = 1
+	FDS_DISK_FILE_LAYOUT_BLOCK uint64 = 2
+	FDS_FILE_HEADER_BLOCK      uint64 = 3
+	FDS_FILE_DATA_BLOCK        uint64 = 4
+	FDS_EPOCH                         = 1925
+	FDS_HEADER_MAGIC                  = "\x46\x44\x53\x1a"
+	FDS_HEADER_PADDING                = "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+	FDS_MAGIC                         = "*NINTENDO-HVC*"
 )
 
 type FDSArchiveFile struct {
@@ -127,24 +146,29 @@ type FDSFileData struct {
 }
 
 type FDSError struct {
-	text string
+	Text string
 }
 
 func (r *FDSError) Error() string {
-	return r.text
+	return r.Text
 }
 
+// Read a byte slice and attempt to decode it into an FDSArchiveFile structure
 func DecodeFDSArchive(inputFile []byte, relativePath string, generateChecksums bool) (*FDSArchiveFile, error) {
+	// Get all of the disk sides as byte slices
 	sideByteSlices, err := GetStrippedDiskSideByteSlices(inputFile)
 	if err != nil {
 		return nil, err
 	}
 
+	// Find out how many slices we have
 	numberOfSides := len(sideByteSlices)
 
+	// Create the archive file
 	tempArchive := &FDSArchiveFile{}
 	sideArray := make([]*FDSSide, 0)
 
+	// File location, size, and hashing metadata
 	tempArchive.RelativePath = relativePath
 	tempArchive.CRC32 = crc32.ChecksumIEEE(inputFile)
 	tempArchive.MD5 = md5.Sum(inputFile)
@@ -152,6 +176,7 @@ func DecodeFDSArchive(inputFile []byte, relativePath string, generateChecksums b
 	tempArchive.SHA256 = sha256.Sum256(inputFile)
 	tempArchive.Size = uint64(len(inputFile))
 
+	// Decode and record metadata about each disk side
 	for sliceIndex := 0; sliceIndex < numberOfSides; sliceIndex++ {
 		tempSide, err := DecodeFDSSide(sideByteSlices[sliceIndex], generateChecksums)
 		if err != nil {
@@ -167,9 +192,10 @@ func DecodeFDSArchive(inputFile []byte, relativePath string, generateChecksums b
 		sideArray = append(sideArray, tempSide)
 	}
 
+	// Assign disk numbers.  Each disk has two sides.
 	diskNumbers := make([]uint8, 0)
 
-	for sideIndex, _ := range sideArray {
+	for sideIndex := range sideArray {
 		hasDiskNumber := false
 		for _, diskNumber := range diskNumbers {
 			if sideArray[sideIndex].DiskNumber == diskNumber {
@@ -184,15 +210,15 @@ func DecodeFDSArchive(inputFile []byte, relativePath string, generateChecksums b
 
 	sort.Slice(diskNumbers, func(i int, j int) bool { return diskNumbers[i] < diskNumbers[j] })
 
-	for diskIndex, _ := range diskNumbers {
+	for diskIndex := range diskNumbers {
 		tempArchive.ArchiveDisks = append(tempArchive.ArchiveDisks, &FDSDisk{})
 		numberOfDisks := len(tempArchive.ArchiveDisks)
 		tempArchive.ArchiveDisks[numberOfDisks-1].DiskNumber = diskNumbers[diskIndex]
 		tempArchive.ArchiveDisks[numberOfDisks-1].DiskSides = make([]*FDSSide, 0)
 	}
 
-	for sideIndex, _ := range sideArray {
-		for diskIndex, _ := range tempArchive.ArchiveDisks {
+	for sideIndex := range sideArray {
+		for diskIndex := range tempArchive.ArchiveDisks {
 			if tempArchive.ArchiveDisks[diskIndex].DiskNumber == sideArray[sideIndex].DiskNumber {
 				tempArchive.ArchiveDisks[diskIndex].DiskSides = append(tempArchive.ArchiveDisks[diskIndex].DiskSides, sideArray[sideIndex])
 			}
@@ -203,8 +229,9 @@ func DecodeFDSArchive(inputFile []byte, relativePath string, generateChecksums b
 }
 
 func DecodeFDSSide(inputSide []byte, generateChecksums bool) (*FDSSide, error) {
+	// Validate the internal FDS header
 	if inputSide[0x00] != uint8(FDS_DISK_INFO_BLOCK) {
-		return nil, &FDSError{text: "Unable to decode header for FDS side."}
+		return nil, &FDSError{Text: "Unable to decode header for FDS side."}
 	}
 
 	readChecksums := false
@@ -212,6 +239,7 @@ func DecodeFDSSide(inputSide []byte, generateChecksums bool) (*FDSSide, error) {
 	tempSide := &FDSSide{}
 	var err error
 
+	// Read in filesystem metadata for the disk side
 	tempSide.ManufacturerCode = inputSide[0x0f]
 	tempSide.FDSGameName = string(inputSide[0x10:0x13])
 	tempSide.GameType = inputSide[0x13]
@@ -247,6 +275,7 @@ func DecodeFDSSide(inputSide []byte, generateChecksums bool) (*FDSSide, error) {
 	tempSide.Byte36 = inputSide[0x36]
 	tempSide.Price = inputSide[0x37]
 
+	// Generate a CRC for the initial metadata chunk
 	diskInfoBytes := make([]byte, 0x38-0x00)
 	copy(diskInfoBytes, inputSide[0:0x38])
 	diskInfoBytes = append(diskInfoBytes, []byte{'\x00', '\x00'}...)
@@ -255,6 +284,7 @@ func DecodeFDSSide(inputSide []byte, generateChecksums bool) (*FDSSide, error) {
 		return nil, err
 	}
 
+	// Read and update checksums as applicable
 	if binary.LittleEndian.Uint16(inputSide[0x38:0x3a]) == testCrc && inputSide[0x3a] == '\x01' {
 		readChecksums = true
 		tempSide.DiskInfoCRC = testCrc
@@ -276,12 +306,14 @@ func DecodeFDSSide(inputSide []byte, generateChecksums bool) (*FDSSide, error) {
 		checksumOffset = 2
 	}
 
+	// Check for how many files are on the disk side
 	if inputSide[0x38+checksumOffset] != uint8(FDS_DISK_FILE_LAYOUT_BLOCK) {
-		return nil, &FDSError{text: "Unable to determine number of files on FDS side."}
+		return nil, &FDSError{Text: "Unable to determine number of files on FDS side."}
 	}
 
 	numberOfFiles := inputSide[0x39+checksumOffset]
 
+	// More checksums
 	if readChecksums {
 		tempSide.FileTableCRC = binary.LittleEndian.Uint16(inputSide[0x38+checksumOffset : 0x3a+checksumOffset])
 	} else {
@@ -300,13 +332,16 @@ func DecodeFDSSide(inputSide []byte, generateChecksums bool) (*FDSSide, error) {
 
 	var currentIndex = 0x003a + (2 * checksumOffset)
 
+	// Read each file on the disk side into a struct
 	for fileIndex := 0; fileIndex < int(numberOfFiles); fileIndex++ {
+		// Verify we're in the right block
 		if inputSide[currentIndex] != uint8(FDS_FILE_HEADER_BLOCK) {
-			return nil, &FDSError{text: "Unable to read file header."}
+			return nil, &FDSError{Text: "Unable to read file header."}
 		}
 
 		tempFile := &FDSFile{}
 
+		// File metadata
 		tempFile.FileNumber = inputSide[currentIndex+1]
 		tempFile.FileIdentificationCode = inputSide[currentIndex+2]
 		tempFile.FileName = string(inputSide[currentIndex+3 : currentIndex+11])
@@ -314,6 +349,7 @@ func DecodeFDSSide(inputSide []byte, generateChecksums bool) (*FDSSide, error) {
 		tempFile.FileSize = binary.LittleEndian.Uint16(inputSide[currentIndex+13 : currentIndex+15])
 		tempFile.FileType = inputSide[currentIndex+15]
 
+		// Checksums.  Again.
 		if readChecksums {
 			tempFile.FileMetadataCRC = binary.LittleEndian.Uint16(inputSide[currentIndex+16 : currentIndex+18])
 		} else {
@@ -330,8 +366,9 @@ func DecodeFDSSide(inputSide []byte, generateChecksums bool) (*FDSSide, error) {
 			}
 		}
 
+		// Read in the file contents
 		if inputSide[currentIndex+16+checksumOffset] != uint8(FDS_FILE_DATA_BLOCK) {
-			return nil, &FDSError{text: "Unable to read file data."}
+			return nil, &FDSError{Text: "Unable to read file data."}
 		}
 
 		tempFileData := &FDSFileData{}
@@ -374,12 +411,14 @@ func DecodeFDSSide(inputSide []byte, generateChecksums bool) (*FDSSide, error) {
 	return tempSide, nil
 }
 
+// Turn an FDSArchiveFile struct into a byte slice that can be written to disk as a .fds file
 func EncodeFDSArchive(inputArchive *FDSArchiveFile, writeHeader bool, writeChecksums bool, generateChecksums bool, writeQd bool) ([]byte, error) {
 	archiveBytes := make([]byte, 0)
 
+	// Write an FDS header if requested.  Don't do this unless you know you need to, though.
 	if writeHeader {
 		var numberOfSides uint8 = 0
-		for diskIndex, _ := range inputArchive.ArchiveDisks {
+		for diskIndex := range inputArchive.ArchiveDisks {
 			numberOfSides = numberOfSides + uint8(len(inputArchive.ArchiveDisks[diskIndex].DiskSides))
 		}
 		archiveBytes = append(archiveBytes, []byte(FDS_HEADER_MAGIC)...)
@@ -387,8 +426,9 @@ func EncodeFDSArchive(inputArchive *FDSArchiveFile, writeHeader bool, writeCheck
 		archiveBytes = append(archiveBytes, []byte(FDS_HEADER_PADDING)...)
 	}
 
-	for diskIndex, _ := range inputArchive.ArchiveDisks {
-		for sideIndex, _ := range inputArchive.ArchiveDisks[diskIndex].DiskSides {
+	// Encode and append each disk side
+	for diskIndex := range inputArchive.ArchiveDisks {
+		for sideIndex := range inputArchive.ArchiveDisks[diskIndex].DiskSides {
 			sideBytes, err := EncodeFDSSide(inputArchive.ArchiveDisks[diskIndex].DiskSides[sideIndex], writeChecksums, generateChecksums, writeQd)
 			if err != nil {
 				return nil, err
@@ -401,9 +441,12 @@ func EncodeFDSArchive(inputArchive *FDSArchiveFile, writeHeader bool, writeCheck
 	return archiveBytes, nil
 }
 
+// Turn an FDSSide struct into something that can be appended to the data
+// in an FDSArchiveFile struct
 func EncodeFDSSide(inputSide *FDSSide, writeChecksums bool, generateChecksums bool, writeQd bool) ([]byte, error) {
 	sideSlice := make([]byte, 0)
 
+	// Lots of metadata in the info block
 	sideSlice = append(sideSlice, byte(FDS_DISK_INFO_BLOCK))
 	sideSlice = append(sideSlice, []byte(FDS_MAGIC)...)
 	sideSlice = append(sideSlice, inputSide.ManufacturerCode)
@@ -442,6 +485,8 @@ func EncodeFDSSide(inputSide *FDSSide, writeChecksums bool, generateChecksums bo
 	sideSlice = append(sideSlice, inputSide.ActualDiskSide)
 	sideSlice = append(sideSlice, inputSide.Byte36)
 	sideSlice = append(sideSlice, inputSide.Price)
+
+	// Yet more checksums
 	if writeChecksums {
 		tempCrc16 := inputSide.DiskInfoCRC
 		if generateChecksums {
@@ -450,7 +495,7 @@ func EncodeFDSSide(inputSide *FDSSide, writeChecksums bool, generateChecksums bo
 			diskInfoBytes = append(diskInfoBytes, []byte{'\x00', '\x00'}...)
 			tempCrc16Generated, err := GenerateFDSBlockCRC(diskInfoBytes)
 			if err != nil {
-				return nil, &FDSError{text: "Unable to generate disk info CRC."}
+				return nil, &FDSError{Text: "Unable to generate disk info CRC."}
 			}
 
 			tempCrc16 = tempCrc16Generated
@@ -462,10 +507,12 @@ func EncodeFDSSide(inputSide *FDSSide, writeChecksums bool, generateChecksums bo
 		sideSlice = append(sideSlice, crcBytes...)
 	}
 
+	// Now for the layout . . .
 	fileLayoutSlice := make([]byte, 2)
 	fileLayoutSlice[0] = byte(FDS_DISK_FILE_LAYOUT_BLOCK)
 	fileLayoutSlice[1] = uint8(len(inputSide.SideFiles))
 
+	// . . . and checksums
 	if writeChecksums {
 		tempCrc16 := inputSide.FileTableCRC
 		if generateChecksums {
@@ -474,7 +521,7 @@ func EncodeFDSSide(inputSide *FDSSide, writeChecksums bool, generateChecksums bo
 			fileLayoutBytes = append(fileLayoutBytes, []byte{'\x00', '\x00'}...)
 			tempCrc16Generated, err := GenerateFDSBlockCRC(fileLayoutBytes)
 			if err != nil {
-				return nil, &FDSError{text: "Unable to generate disk info CRC."}
+				return nil, &FDSError{Text: "Unable to generate disk info CRC."}
 			}
 
 			tempCrc16 = tempCrc16Generated
@@ -488,7 +535,8 @@ func EncodeFDSSide(inputSide *FDSSide, writeChecksums bool, generateChecksums bo
 
 	sideSlice = append(sideSlice, fileLayoutSlice...)
 
-	for index, _ := range inputSide.SideFiles {
+	// Finally, each of the files and their metadata (and checksums)
+	for index := range inputSide.SideFiles {
 		fileHeaderSlice := make([]byte, 0)
 
 		fileHeaderSlice = append(fileHeaderSlice, byte(FDS_FILE_HEADER_BLOCK))
@@ -511,7 +559,7 @@ func EncodeFDSSide(inputSide *FDSSide, writeChecksums bool, generateChecksums bo
 				fileHeaderBytes = append(fileHeaderBytes, []byte{'\x00', '\x00'}...)
 				tempCrc16Generated, err := GenerateFDSBlockCRC(fileHeaderBytes)
 				if err != nil {
-					return nil, &FDSError{text: "Unable to generate disk info CRC."}
+					return nil, &FDSError{Text: "Unable to generate disk info CRC."}
 				}
 
 				tempCrc16 = tempCrc16Generated
@@ -537,7 +585,7 @@ func EncodeFDSSide(inputSide *FDSSide, writeChecksums bool, generateChecksums bo
 				fileDataBytes = append(fileDataBytes, []byte{'\x00', '\x00'}...)
 				tempCrc16Generated, err := GenerateFDSBlockCRC(fileDataBytes)
 				if err != nil {
-					return nil, &FDSError{text: "Unable to generate disk info CRC."}
+					return nil, &FDSError{Text: "Unable to generate disk info CRC."}
 				}
 
 				tempCrc16 = tempCrc16Generated
@@ -552,6 +600,9 @@ func EncodeFDSSide(inputSide *FDSSide, writeChecksums bool, generateChecksums bo
 		sideSlice = append(sideSlice, fileDataSlice...)
 	}
 
+	// Fill in any unallocated space.  Sometimes games have important
+	// data in here.  Regardless, the side needs to be 65,500 bytes for
+	// an FDS disk, or 65,536 bytes for QD disk
 	unallocatedSpaceBytes := inputSide.UnallocatedSpace
 	tempSideSliceLength := uint16(len(sideSlice))
 
@@ -570,7 +621,7 @@ func EncodeFDSSide(inputSide *FDSSide, writeChecksums bool, generateChecksums bo
 	}
 
 	sideSlice = append(sideSlice, unallocatedSpaceBytes...)
-	sideSliceLength := len(sideSlice)
+	sideSliceLength := uint64(len(sideSlice))
 
 	if writeQd {
 		if sideSliceLength < QD_SIDE_SIZE {
@@ -599,12 +650,14 @@ func EncodeFDSSide(inputSide *FDSSide, writeChecksums bool, generateChecksums bo
 	return sideSlice, nil
 }
 
+// Generate a CRC for given block of data.  Few, if any,
+// FDS implementations actually use these.
 func GenerateFDSBlockCRC(rawBlock []byte) (uint16, error) {
 	var workingCrc uint16 = 0x8000
 	dataSize := len(rawBlock)
 
 	if dataSize < 3 {
-		return 0, &FDSError{text: "Data too small to be a valid FDS block."}
+		return 0, &FDSError{Text: "Data too small to be a valid FDS block."}
 	}
 
 	workingBlock := make([]byte, dataSize)
@@ -634,28 +687,30 @@ func GenerateFDSBlockCRC(rawBlock []byte) (uint16, error) {
 	return workingCrc, nil
 }
 
+// Get a slice of byte slices containing each of the disk sides.  If there's
+// an FDS file header, strip it out.
 func GetStrippedDiskSideByteSlices(inputFile []byte) ([][]byte, error) {
 	isQd := false
 
 	fileSize := len(inputFile)
 
 	if fileSize < 2 {
-		return nil, &FDSError{text: "File too small to be a valid FDS archive."}
+		return nil, &FDSError{Text: "File too small to be a valid FDS archive."}
 	}
 
 	if bytes.Compare(inputFile[0:4], []byte(FDS_HEADER_MAGIC)) == 0 {
-		if ((fileSize - 16) % FDS_SIDE_SIZE) != 0 {
-			if ((fileSize - 16) % QD_SIDE_SIZE) != 0 {
-				return nil, &FDSError{text: "File is not a valid FDS or QD archive.  " + strconv.Itoa(fileSize-16) + " should be divisible by " + strconv.Itoa(FDS_SIDE_SIZE) + " for an FDS archive or " + strconv.Itoa(QD_SIDE_SIZE) + " for a QD archive."}
+		if (uint64(fileSize-16) % FDS_SIDE_SIZE) != 0 {
+			if (uint64(fileSize-16) % QD_SIDE_SIZE) != 0 {
+				return nil, &FDSError{Text: "File is not a valid FDS or QD archive.  " + strconv.Itoa(fileSize-16) + " should be divisible by " + strconv.FormatUint(FDS_SIDE_SIZE, 10) + " for an FDS archive or " + strconv.FormatUint(QD_SIDE_SIZE, 10) + " for a QD archive."}
 			} else {
 				isQd = true
 			}
 		}
 		return getDiskSideByteSlices(inputFile[16:fileSize], isQd)
 	} else {
-		if (fileSize % FDS_SIDE_SIZE) != 0 {
-			if (fileSize % QD_SIDE_SIZE) != 0 {
-				return nil, &FDSError{text: "File is not a valid FDS or QD archive.  " + strconv.Itoa(fileSize) + " should be divisible by " + strconv.Itoa(FDS_SIDE_SIZE) + " for an FDS archive or " + strconv.Itoa(QD_SIDE_SIZE) + " for a QD archive."}
+		if (uint64(fileSize) % FDS_SIDE_SIZE) != 0 {
+			if (uint64(fileSize) % QD_SIDE_SIZE) != 0 {
+				return nil, &FDSError{Text: "File is not a valid FDS or QD archive.  " + strconv.Itoa(fileSize) + " should be divisible by " + strconv.FormatUint(FDS_SIDE_SIZE, 10) + " for an FDS archive or " + strconv.FormatUint(QD_SIDE_SIZE, 10) + " for a QD archive."}
 			} else {
 				isQd = true
 			}
@@ -664,21 +719,22 @@ func GetStrippedDiskSideByteSlices(inputFile []byte) ([][]byte, error) {
 	}
 }
 
+// Get a slice of byte slices of disk sides
 func getDiskSideByteSlices(inputFile []byte, isQd bool) ([][]byte, error) {
 	sideSize := FDS_SIDE_SIZE
 	if isQd {
 		sideSize = QD_SIDE_SIZE
 	}
 
-	archiveSize := len(inputFile)
+	archiveSize := uint64(len(inputFile))
 	archiveSides := archiveSize / sideSize
 
 	sideByteSlices := make([][]byte, 0)
 
-	for index := 0; index < archiveSides; index++ {
-		byteOffset := index * sideSize
+	for index := 0; uint64(index) < archiveSides; index++ {
+		byteOffset := uint64(index) * sideSize
 		if bytes.Compare(inputFile[byteOffset+1:byteOffset+15], []byte(FDS_MAGIC)) != 0 {
-			return nil, &FDSError{text: "Unable to identify side " + strconv.Itoa(index) + " as an FDS or QD disk side.  File is not a valid FDS or QD archive."}
+			return nil, &FDSError{Text: "Unable to identify side " + strconv.Itoa(index) + " as an FDS or QD disk side.  File is not a valid FDS or QD archive."}
 		}
 		sideByteSlices = append(sideByteSlices, inputFile[byteOffset:byteOffset+sideSize])
 	}
@@ -686,6 +742,8 @@ func getDiskSideByteSlices(inputFile []byte, isQd bool) ([][]byte, error) {
 	return sideByteSlices, nil
 }
 
+// Decode the FDS date format.  It's BCD-encoded, with an epoch set to
+// the beginning of the Showa period.
 func DecodeFDSDateFormat(dateBytes []byte) time.Time {
 	year := decodeBcdByte(dateBytes[0])
 	if year < 83 {
@@ -700,6 +758,7 @@ func DecodeFDSDateFormat(dateBytes []byte) time.Time {
 	return time.Date(int(year), time.Month(month), int(day), 0, 0, 0, 0, time.UTC)
 }
 
+// Encode dates to the FDS date format
 func EncodeFDSDateFormat(dateTime time.Time) ([]byte, error) {
 	year, err := encodeBcdByte(uint8(dateTime.Year() - FDS_EPOCH))
 	if err != nil {
@@ -720,15 +779,17 @@ func EncodeFDSDateFormat(dateTime time.Time) ([]byte, error) {
 	return []byte{year, month, day}, nil
 }
 
+// Turns a BCD byte into an unsigned 16-bit integer
 func decodeBcdByte(bcdByte byte) uint16 {
 	leastSignificantDigit := bcdByte & 0x0f
 	mostSignificantDigit := (bcdByte & 0xf0) >> 4
 	return uint16((10 * mostSignificantDigit) + leastSignificantDigit)
 }
 
+// Encodes values 0 - 99 to a BCD byte
 func encodeBcdByte(bcdInt uint8) (byte, error) {
 	if bcdInt > 99 {
-		return 0, errors.New(strconv.Itoa(int(bcdInt)) + " is too large to be packed into a BCD byte.")
+		return 0, &NES20Tool.NESROMError{Text: strconv.Itoa(int(bcdInt)) + " is too large to be packed into a BCD byte."}
 	}
 	leastSignificantNibble := bcdInt % 10
 	mostSignificantNibble := bcdInt / 10
