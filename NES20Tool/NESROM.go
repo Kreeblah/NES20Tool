@@ -364,6 +364,9 @@ func EncodeNESROM(romModel *NESROM, enableInes bool, truncateRom bool, preserveT
 		} else if romModel.Header20.CHRROMSizeExponent > 0 || romModel.Header20.CHRROMSizeMultiplier > 0 {
 			headerBytes[5] = (romModel.Header20.CHRROMSizeExponent << 2) | romModel.Header20.CHRROMSizeMultiplier
 			headerBytes[9] = headerBytes[9] | 0b11110000
+		} else {
+			headerBytes[5] = 0
+			headerBytes[9] = headerBytes[9] & 0b00001111
 		}
 
 		MapperBytes := make([]byte, 2)
