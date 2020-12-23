@@ -26,6 +26,7 @@ import (
 	"NES20Tool/NES20Tool"
 	"bytes"
 	"encoding/binary"
+	"hash/crc32"
 )
 
 var (
@@ -45,8 +46,15 @@ func DecodeUNIFROM(inputFile []byte) (*NES20Tool.NESROM, error) {
 		return nil, err
 	}
 
-	prgRomData := getRomData(unifChunks, "PRG")
-	chrRomData := getRomData(unifChunks, "CHR")
+	prgRomData, err := getRomData(unifChunks, "PRG", "PCK")
+	if err != nil {
+		return nil, err
+	}
+
+	chrRomData, err := getRomData(unifChunks, "CHR", "CCK")
+	if err != nil {
+		return nil, err
+	}
 
 	tempRom := &NES20Tool.NESROM{}
 
@@ -98,96 +106,226 @@ func getNextUNIFChunk(inputData []byte, position uint64) (string, []byte, uint64
 	tempPosition := position
 
 	// Skip the four-byte UNIF version number and the reserved bytes if at the beginning of the file
-	if bytes.Compare(inputData[position: (position + 4)], []byte(UNIF_MAGIC)) == 0 {
+	if bytes.Compare(inputData[position:(position+4)], []byte(UNIF_MAGIC)) == 0 {
 		tempPosition = 32
 	}
 
 	// Four-byte UTF-8 chunk ID
-	chunkId := string(inputData[tempPosition: (tempPosition + 4)])
+	chunkId := string(inputData[tempPosition:(tempPosition + 4)])
 
 	// "DWORD" (32-bit little endian unsigned integer) chunk length
-	chunkLength := uint64(binary.LittleEndian.Uint32(inputData[(tempPosition + 4) : (tempPosition + 8)]))
+	chunkLength := uint64(binary.LittleEndian.Uint32(inputData[(tempPosition + 4):(tempPosition + 8)]))
 
 	if (tempPosition + 8 + chunkLength) > uint64(len(inputData)) {
 		return "", nil, 0, &NES20Tool.NESROMError{Text: "Invalid UNIF chunk length."}
 	}
 
-	chunkData := inputData[(tempPosition + 8) : (tempPosition + 8 + chunkLength)]
+	chunkData := inputData[(tempPosition + 8):(tempPosition + 8 + chunkLength)]
 
 	return chunkId, chunkData, tempPosition + 8 + chunkLength, nil
 }
 
 // Build a PRG or CHR ROM from a map of UNIF chunks
-func getRomData(unifChunks map[string][]byte, romType string) []byte {
+func getRomData(unifChunks map[string][]byte, romType string, checksumType string) ([]byte, error) {
 	romData := make([]byte, 0)
 
 	// PRG and CHR chunks are named PRG0, PRG1, etc. through PRGF.
 	// Not all of these chunks necessarily exist, but the complete
 	// PRG and/or CHR ROMs are the concatenation of them all in
-	// numerical order.
-	if unifChunks[romType + "0"] != nil {
-		romData = append(romData, unifChunks[romType + "0"]...)
+	// numerical order.  Additionally, checksums are not required
+	// to be included, so we can only hard fail if one exists and is
+	// a mismatch.
+	if unifChunks[romType+"0"] != nil {
+		if unifChunks[checksumType+"0"] != nil {
+			calculatedCrc32 := crc32.ChecksumIEEE(unifChunks[romType+"0"])
+			referenceCrc32 := binary.LittleEndian.Uint32(unifChunks[checksumType+"0"])
+
+			if calculatedCrc32 != referenceCrc32 {
+				return nil, &NES20Tool.NESROMError{Text: "Checksum mismatch for chunk " + romType + "0"}
+			}
+		}
+		romData = append(romData, unifChunks[romType+"0"]...)
 	}
 
-	if unifChunks[romType + "1"] != nil {
-		romData = append(romData, unifChunks[romType + "1"]...)
+	if unifChunks[romType+"1"] != nil {
+		if unifChunks[checksumType+"1"] != nil {
+			calculatedCrc32 := crc32.ChecksumIEEE(unifChunks[romType+"1"])
+			referenceCrc32 := binary.LittleEndian.Uint32(unifChunks[checksumType+"1"])
+
+			if calculatedCrc32 != referenceCrc32 {
+				return nil, &NES20Tool.NESROMError{Text: "Checksum mismatch for chunk " + romType + "1"}
+			}
+		}
+		romData = append(romData, unifChunks[romType+"1"]...)
 	}
 
-	if unifChunks[romType + "2"] != nil {
-		romData = append(romData, unifChunks[romType + "2"]...)
+	if unifChunks[romType+"2"] != nil {
+		if unifChunks[checksumType+"2"] != nil {
+			calculatedCrc32 := crc32.ChecksumIEEE(unifChunks[romType+"2"])
+			referenceCrc32 := binary.LittleEndian.Uint32(unifChunks[checksumType+"2"])
+
+			if calculatedCrc32 != referenceCrc32 {
+				return nil, &NES20Tool.NESROMError{Text: "Checksum mismatch for chunk " + romType + "2"}
+			}
+		}
+		romData = append(romData, unifChunks[romType+"2"]...)
 	}
 
-	if unifChunks[romType + "3"] != nil {
-		romData = append(romData, unifChunks[romType + "3"]...)
+	if unifChunks[romType+"3"] != nil {
+		if unifChunks[checksumType+"3"] != nil {
+			calculatedCrc32 := crc32.ChecksumIEEE(unifChunks[romType+"3"])
+			referenceCrc32 := binary.LittleEndian.Uint32(unifChunks[checksumType+"3"])
+
+			if calculatedCrc32 != referenceCrc32 {
+				return nil, &NES20Tool.NESROMError{Text: "Checksum mismatch for chunk " + romType + "3"}
+			}
+		}
+		romData = append(romData, unifChunks[romType+"3"]...)
 	}
 
-	if unifChunks[romType + "4"] != nil {
-		romData = append(romData, unifChunks[romType + "4"]...)
+	if unifChunks[romType+"4"] != nil {
+		if unifChunks[checksumType+"4"] != nil {
+			calculatedCrc32 := crc32.ChecksumIEEE(unifChunks[romType+"4"])
+			referenceCrc32 := binary.LittleEndian.Uint32(unifChunks[checksumType+"4"])
+
+			if calculatedCrc32 != referenceCrc32 {
+				return nil, &NES20Tool.NESROMError{Text: "Checksum mismatch for chunk " + romType + "4"}
+			}
+		}
+		romData = append(romData, unifChunks[romType+"4"]...)
 	}
 
-	if unifChunks[romType + "5"] != nil {
-		romData = append(romData, unifChunks[romType + "5"]...)
+	if unifChunks[romType+"5"] != nil {
+		if unifChunks[checksumType+"5"] != nil {
+			calculatedCrc32 := crc32.ChecksumIEEE(unifChunks[romType+"5"])
+			referenceCrc32 := binary.LittleEndian.Uint32(unifChunks[checksumType+"5"])
+
+			if calculatedCrc32 != referenceCrc32 {
+				return nil, &NES20Tool.NESROMError{Text: "Checksum mismatch for chunk " + romType + "5"}
+			}
+		}
+		romData = append(romData, unifChunks[romType+"5"]...)
 	}
 
-	if unifChunks[romType + "6"] != nil {
-		romData = append(romData, unifChunks[romType + "6"]...)
+	if unifChunks[romType+"6"] != nil {
+		if unifChunks[checksumType+"6"] != nil {
+			calculatedCrc32 := crc32.ChecksumIEEE(unifChunks[romType+"6"])
+			referenceCrc32 := binary.LittleEndian.Uint32(unifChunks[checksumType+"6"])
+
+			if calculatedCrc32 != referenceCrc32 {
+				return nil, &NES20Tool.NESROMError{Text: "Checksum mismatch for chunk " + romType + "6"}
+			}
+		}
+		romData = append(romData, unifChunks[romType+"6"]...)
 	}
 
-	if unifChunks[romType + "7"] != nil {
-		romData = append(romData, unifChunks[romType + "7"]...)
+	if unifChunks[romType+"7"] != nil {
+		if unifChunks[checksumType+"7"] != nil {
+			calculatedCrc32 := crc32.ChecksumIEEE(unifChunks[romType+"7"])
+			referenceCrc32 := binary.LittleEndian.Uint32(unifChunks[checksumType+"7"])
+
+			if calculatedCrc32 != referenceCrc32 {
+				return nil, &NES20Tool.NESROMError{Text: "Checksum mismatch for chunk " + romType + "7"}
+			}
+		}
+		romData = append(romData, unifChunks[romType+"7"]...)
 	}
 
-	if unifChunks[romType + "8"] != nil {
-		romData = append(romData, unifChunks[romType + "8"]...)
+	if unifChunks[romType+"8"] != nil {
+		if unifChunks[checksumType+"8"] != nil {
+			calculatedCrc32 := crc32.ChecksumIEEE(unifChunks[romType+"8"])
+			referenceCrc32 := binary.LittleEndian.Uint32(unifChunks[checksumType+"8"])
+
+			if calculatedCrc32 != referenceCrc32 {
+				return nil, &NES20Tool.NESROMError{Text: "Checksum mismatch for chunk " + romType + "8"}
+			}
+		}
+		romData = append(romData, unifChunks[romType+"8"]...)
 	}
 
-	if unifChunks[romType + "9"] != nil {
-		romData = append(romData, unifChunks[romType + "9"]...)
+	if unifChunks[romType+"9"] != nil {
+		if unifChunks[checksumType+"9"] != nil {
+			calculatedCrc32 := crc32.ChecksumIEEE(unifChunks[romType+"9"])
+			referenceCrc32 := binary.LittleEndian.Uint32(unifChunks[checksumType+"9"])
+
+			if calculatedCrc32 != referenceCrc32 {
+				return nil, &NES20Tool.NESROMError{Text: "Checksum mismatch for chunk " + romType + "9"}
+			}
+		}
+		romData = append(romData, unifChunks[romType+"9"]...)
 	}
 
-	if unifChunks[romType + "A"] != nil {
-		romData = append(romData, unifChunks[romType + "A"]...)
+	if unifChunks[romType+"A"] != nil {
+		if unifChunks[checksumType+"A"] != nil {
+			calculatedCrc32 := crc32.ChecksumIEEE(unifChunks[romType+"A"])
+			referenceCrc32 := binary.LittleEndian.Uint32(unifChunks[checksumType+"A"])
+
+			if calculatedCrc32 != referenceCrc32 {
+				return nil, &NES20Tool.NESROMError{Text: "Checksum mismatch for chunk " + romType + "A"}
+			}
+		}
+		romData = append(romData, unifChunks[romType+"A"]...)
 	}
 
-	if unifChunks[romType + "B"] != nil {
-		romData = append(romData, unifChunks[romType + "B"]...)
+	if unifChunks[romType+"B"] != nil {
+		if unifChunks[checksumType+"B"] != nil {
+			calculatedCrc32 := crc32.ChecksumIEEE(unifChunks[romType+"B"])
+			referenceCrc32 := binary.LittleEndian.Uint32(unifChunks[checksumType+"B"])
+
+			if calculatedCrc32 != referenceCrc32 {
+				return nil, &NES20Tool.NESROMError{Text: "Checksum mismatch for chunk " + romType + "B"}
+			}
+		}
+		romData = append(romData, unifChunks[romType+"B"]...)
 	}
 
-	if unifChunks[romType + "C"] != nil {
-		romData = append(romData, unifChunks[romType + "C"]...)
+	if unifChunks[romType+"C"] != nil {
+		if unifChunks[checksumType+"C"] != nil {
+			calculatedCrc32 := crc32.ChecksumIEEE(unifChunks[romType+"C"])
+			referenceCrc32 := binary.LittleEndian.Uint32(unifChunks[checksumType+"C"])
+
+			if calculatedCrc32 != referenceCrc32 {
+				return nil, &NES20Tool.NESROMError{Text: "Checksum mismatch for chunk " + romType + "C"}
+			}
+		}
+		romData = append(romData, unifChunks[romType+"C"]...)
 	}
 
-	if unifChunks[romType + "D"] != nil {
-		romData = append(romData, unifChunks[romType + "D"]...)
+	if unifChunks[romType+"D"] != nil {
+		if unifChunks[checksumType+"D"] != nil {
+			calculatedCrc32 := crc32.ChecksumIEEE(unifChunks[romType+"D"])
+			referenceCrc32 := binary.LittleEndian.Uint32(unifChunks[checksumType+"D"])
+
+			if calculatedCrc32 != referenceCrc32 {
+				return nil, &NES20Tool.NESROMError{Text: "Checksum mismatch for chunk " + romType + "D"}
+			}
+		}
+		romData = append(romData, unifChunks[romType+"D"]...)
 	}
 
-	if unifChunks[romType + "E"] != nil {
-		romData = append(romData, unifChunks[romType + "E"]...)
+	if unifChunks[romType+"E"] != nil {
+		if unifChunks[checksumType+"E"] != nil {
+			calculatedCrc32 := crc32.ChecksumIEEE(unifChunks[romType+"E"])
+			referenceCrc32 := binary.LittleEndian.Uint32(unifChunks[checksumType+"E"])
+
+			if calculatedCrc32 != referenceCrc32 {
+				return nil, &NES20Tool.NESROMError{Text: "Checksum mismatch for chunk " + romType + "E"}
+			}
+		}
+		romData = append(romData, unifChunks[romType+"E"]...)
 	}
 
-	if unifChunks[romType + "F"] != nil {
-		romData = append(romData, unifChunks[romType + "F"]...)
+	if unifChunks[romType+"F"] != nil {
+		if unifChunks[checksumType+"F"] != nil {
+			calculatedCrc32 := crc32.ChecksumIEEE(unifChunks[romType+"F"])
+			referenceCrc32 := binary.LittleEndian.Uint32(unifChunks[checksumType+"F"])
+
+			if calculatedCrc32 != referenceCrc32 {
+				return nil, &NES20Tool.NESROMError{Text: "Checksum mismatch for chunk " + romType + "F"}
+			}
+		}
+		romData = append(romData, unifChunks[romType+"F"]...)
 	}
 
-	return romData
+	return romData, nil
 }

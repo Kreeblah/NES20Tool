@@ -135,8 +135,8 @@ func main() {
 
 		os.Exit(0)
 
-	// Read an XML file and a source ROM set, match the ROMs in it, and
-	// write out a ROM set in a destination location.
+		// Read an XML file and a source ROM set, match the ROMs in it, and
+		// write out a ROM set in a destination location.
 	} else if *romSetCommand == "write" {
 		println("Loading XML file from: " + *romSetXmlFile)
 		xmlPayload, err := ioutil.ReadFile(*romSetXmlFile)

@@ -494,7 +494,7 @@ func UnmarshalNES20DBXMLToROMMap(xmlPayload string) (map[string]*NES20Tool.NESRO
 			}
 		}
 
-		romMap["SHA1:" + strings.ToUpper(xmlStruct.Games[index].Rom.Sha1)] = tempRom
+		romMap["SHA1:"+strings.ToUpper(xmlStruct.Games[index].Rom.Sha1)] = tempRom
 	}
 
 	return romMap, nil
