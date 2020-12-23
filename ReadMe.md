@@ -32,15 +32,17 @@ To use this tool, compile it for your favorite OS and then run it with the follo
     -generate-fds-crcs
         Generate FDS CRCs for data chunks.  Few, if any, emulators use these.
     -operation string
-    	Operation to perform on the ROM set. {read|write}
+    	Required.  Operation to perform on the ROM set. {read|write}
     -organization
     	Read/write relative file location information for automatic organization.
     -preserve-trainers
     	Preserve trainers in read/write process.
+    -print-checksums
+        Print checksums as ROMs are loaded or processed.
     -rom-output-base-path string
     	The path to use for writing organized NES and/or FDS ROMs.
     -rom-source-path string
-    	The path to a directory with NES and/or FDS ROMs to use for the operation.
+    	Required.  The path to a directory with NES and/or FDS ROMs to use for the operation.
     -truncate-roms
         Truncate PRGROM and CHRROM to the sizes specified in the header.
     -xml-file string

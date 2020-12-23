@@ -38,6 +38,7 @@ func main() {
 	romSetGenerateFDSCRCs := flag.Bool("generate-fds-crcs", false, "Generate FDS CRCs for data chunks.  Few, if any, emulators use these.")
 	romSetCommand := flag.String("operation", "", "Required.  Operation to perform on the ROM set. {read|write}")
 	romSetOrganization := flag.Bool("organization", false, "Read/write relative file location information for automatic organization.")
+	romSetPrintChecksums := flag.Bool("print-checksums", false, "Print checksums as ROMs are loaded or processed.")
 	romSetTruncateRoms := flag.Bool("truncate-roms", false, "Truncate PRGROM and CHRROM to the sizes specified in the header.")
 	romSetPreserveTrainers := flag.Bool("preserve-trainers", false, "Preserve trainers in read/write process.")
 	romOutputBasePath := flag.String("rom-output-base-path", "", "The path to use for writing organized NES and/or FDS ROMs.")
@@ -101,7 +102,7 @@ func main() {
 	// Read a directory structure and generate an XML file to represent it
 	if *romSetCommand == "read" {
 		println("Loading NES 2.0 ROMs from: " + *romSetSourceDirectory)
-		romMap, err := FileTools.LoadROMRecursiveMap(*romSetSourceDirectory, *romSetEnableV1, *romSetPreserveTrainers, ProcessingTools.HASH_TYPE_SHA256)
+		romMap, err := FileTools.LoadROMRecursiveMap(*romSetSourceDirectory, *romSetEnableV1, *romSetPreserveTrainers, ProcessingTools.HASH_TYPE_SHA256, *romSetPrintChecksums)
 		if err != nil {
 			panic(err)
 		}
@@ -110,7 +111,7 @@ func main() {
 
 		if *romSetEnableFDS {
 			println("Loading FDS archives from: " + *romSetSourceDirectory)
-			archiveMap, err = FileTools.LoadFDSArchiveRecursiveMap(*romSetSourceDirectory, *romSetGenerateFDSCRCs, ProcessingTools.HASH_TYPE_SHA256)
+			archiveMap, err = FileTools.LoadFDSArchiveRecursiveMap(*romSetSourceDirectory, *romSetGenerateFDSCRCs, ProcessingTools.HASH_TYPE_SHA256, *romSetPrintChecksums)
 			if err != nil {
 				panic(err)
 			}
@@ -170,7 +171,7 @@ func main() {
 		}
 
 		println("Processing NES ROMs in: " + *romSetSourceDirectory)
-		rawRoms, err := FileTools.LoadROMRecursive(*romSetSourceDirectory, *romSetEnableV1, *romSetPreserveTrainers)
+		rawRoms, err := FileTools.LoadROMRecursive(*romSetSourceDirectory, *romSetEnableV1, *romSetPreserveTrainers, *romSetPrintChecksums)
 		if err != nil {
 			panic(err)
 		}
@@ -178,7 +179,7 @@ func main() {
 		matchedRoms := ProcessingTools.ProcessNESROMs(rawRoms, romData, hashTypeMatch, *romSetTruncateRoms, *romSetOrganization, *romSetEnableV1)
 
 		println("Processing UNIF ROMs in: " + *romSetSourceDirectory)
-		rawUnifs, err := FileTools.LoadUNIFRecursive(*romSetSourceDirectory)
+		rawUnifs, err := FileTools.LoadUNIFRecursive(*romSetSourceDirectory, *romSetPrintChecksums)
 		if err != nil {
 			panic(err)
 		}
@@ -192,7 +193,7 @@ func main() {
 
 		if *romSetEnableFDS {
 			println("Processing FDS archives in: " + *romSetSourceDirectory)
-			rawArchives, err = FileTools.LoadFDSArchiveRecursive(*romSetSourceDirectory, false)
+			rawArchives, err = FileTools.LoadFDSArchiveRecursive(*romSetSourceDirectory, false, *romSetPrintChecksums)
 			if err != nil {
 				panic(err)
 			}

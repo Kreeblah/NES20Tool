@@ -76,7 +76,7 @@ func LoadFile(fileName string, basePath string) ([]byte, string, error) {
 }
 
 // Read in an INES or NES 2.0 ROM and decode it into an NESROM struct
-func LoadROM(fileName string, enableInes bool, preserveTrainer bool, basePath string) (*NESTool.NESROM, error) {
+func LoadROM(fileName string, enableInes bool, preserveTrainer bool, basePath string, printChecksums bool) (*NESTool.NESROM, error) {
 	byteSlice, relativePath, err := LoadFile(fileName, basePath)
 	if err != nil {
 		return nil, err
@@ -94,11 +94,58 @@ func LoadROM(fileName string, enableInes bool, preserveTrainer bool, basePath st
 		decodedRom.Name = tempName
 	}
 
+	println("Loading ROM: " + fileName)
+
+	if printChecksums {
+		crc32Bytes := make([]byte, 4)
+		binary.BigEndian.PutUint32(crc32Bytes, decodedRom.CRC32)
+		println("ROM CRC32 : " + strings.ToUpper(hex.EncodeToString(crc32Bytes)))
+		println("ROM MD5   : " + strings.ToUpper(hex.EncodeToString(decodedRom.MD5[:])))
+		println("ROM SHA1  : " + strings.ToUpper(hex.EncodeToString(decodedRom.SHA1[:])))
+		println("ROM SHA256: " + strings.ToUpper(hex.EncodeToString(decodedRom.SHA256[:])))
+
+		prgCrc32Bytes := make([]byte, 4)
+		chrCrc32Bytes := make([]byte, 4)
+		if decodedRom.Header20 != nil {
+			binary.BigEndian.PutUint32(prgCrc32Bytes, decodedRom.Header20.PRGROMCRC32)
+			println("PRG CRC32 : " + strings.ToUpper(hex.EncodeToString(prgCrc32Bytes)))
+			println("PRG MD5   : " + strings.ToUpper(hex.EncodeToString(decodedRom.Header20.PRGROMMD5[:])))
+			println("PRG SHA1  : " + strings.ToUpper(hex.EncodeToString(decodedRom.Header20.PRGROMSHA1[:])))
+			println("PRG SHA256: " + strings.ToUpper(hex.EncodeToString(decodedRom.Header20.PRGROMSHA256[:])))
+
+			if decodedRom.Header20.CHRROMCalculatedSize > 0 {
+				binary.BigEndian.PutUint32(chrCrc32Bytes, decodedRom.Header20.CHRROMCRC32)
+				println("CHR CRC32 : " + strings.ToUpper(hex.EncodeToString(chrCrc32Bytes)))
+				println("CHR MD5   : " + strings.ToUpper(hex.EncodeToString(decodedRom.Header20.CHRROMMD5[:])))
+				println("CHR SHA1  : " + strings.ToUpper(hex.EncodeToString(decodedRom.Header20.CHRROMSHA1[:])))
+				println("CHR SHA256: " + strings.ToUpper(hex.EncodeToString(decodedRom.Header20.CHRROMSHA256[:])))
+			} else {
+				println("Skipping CHR checksums, as there is no CHR for this ROM.")
+			}
+		} else if decodedRom.Header10 != nil {
+			binary.BigEndian.PutUint32(prgCrc32Bytes, decodedRom.Header10.PRGROMCRC32)
+			println("PRG CRC32 : " + strings.ToUpper(hex.EncodeToString(prgCrc32Bytes)))
+			println("PRG MD5   : " + strings.ToUpper(hex.EncodeToString(decodedRom.Header10.PRGROMMD5[:])))
+			println("PRG SHA1  : " + strings.ToUpper(hex.EncodeToString(decodedRom.Header10.PRGROMSHA1[:])))
+			println("PRG SHA256: " + strings.ToUpper(hex.EncodeToString(decodedRom.Header10.PRGROMSHA256[:])))
+
+			if decodedRom.Header10.CHRROMCalculatedSize > 0 {
+				binary.BigEndian.PutUint32(chrCrc32Bytes, decodedRom.Header10.CHRROMCRC32)
+				println("CHR CRC32 : " + strings.ToUpper(hex.EncodeToString(chrCrc32Bytes)))
+				println("CHR MD5   : " + strings.ToUpper(hex.EncodeToString(decodedRom.Header10.CHRROMMD5[:])))
+				println("CHR SHA1  : " + strings.ToUpper(hex.EncodeToString(decodedRom.Header10.CHRROMSHA1[:])))
+				println("CHR SHA256: " + strings.ToUpper(hex.EncodeToString(decodedRom.Header10.CHRROMSHA256[:])))
+			} else {
+				println("Skipping CHR checksums, as there is no CHR for this ROM.")
+			}
+		}
+	}
+
 	return decodedRom, err
 }
 
 // Read in a UNIF ROM and decode it into an NESROM struct
-func LoadUNIF(fileName string, basePath string) (*NESTool.NESROM, error) {
+func LoadUNIF(fileName string, basePath string, printChecksums bool) (*NESTool.NESROM, error) {
 	byteSlice, _, err := LoadFile(fileName, basePath)
 	if err != nil {
 		return nil, err
@@ -118,11 +165,58 @@ func LoadUNIF(fileName string, basePath string) (*NESTool.NESROM, error) {
 		decodedRom.Name = tempName
 	}
 
+	println("Loading ROM: " + fileName)
+
+	if printChecksums {
+		crc32Bytes := make([]byte, 4)
+		binary.BigEndian.PutUint32(crc32Bytes, decodedRom.CRC32)
+		println("ROM CRC32 : " + strings.ToUpper(hex.EncodeToString(crc32Bytes)))
+		println("ROM MD5   : " + strings.ToUpper(hex.EncodeToString(decodedRom.MD5[:])))
+		println("ROM SHA1  : " + strings.ToUpper(hex.EncodeToString(decodedRom.SHA1[:])))
+		println("ROM SHA256: " + strings.ToUpper(hex.EncodeToString(decodedRom.SHA256[:])))
+
+		prgCrc32Bytes := make([]byte, 4)
+		chrCrc32Bytes := make([]byte, 4)
+		if decodedRom.Header20 != nil {
+			binary.BigEndian.PutUint32(prgCrc32Bytes, decodedRom.Header20.PRGROMCRC32)
+			println("PRG CRC32 : " + strings.ToUpper(hex.EncodeToString(prgCrc32Bytes)))
+			println("PRG MD5   : " + strings.ToUpper(hex.EncodeToString(decodedRom.Header20.PRGROMMD5[:])))
+			println("PRG SHA1  : " + strings.ToUpper(hex.EncodeToString(decodedRom.Header20.PRGROMSHA1[:])))
+			println("PRG SHA256: " + strings.ToUpper(hex.EncodeToString(decodedRom.Header20.PRGROMSHA256[:])))
+
+			if decodedRom.Header20.CHRROMCalculatedSize > 0 {
+				binary.BigEndian.PutUint32(chrCrc32Bytes, decodedRom.Header20.CHRROMCRC32)
+				println("CHR CRC32 : " + strings.ToUpper(hex.EncodeToString(chrCrc32Bytes)))
+				println("CHR MD5   : " + strings.ToUpper(hex.EncodeToString(decodedRom.Header20.CHRROMMD5[:])))
+				println("CHR SHA1  : " + strings.ToUpper(hex.EncodeToString(decodedRom.Header20.CHRROMSHA1[:])))
+				println("CHR SHA256: " + strings.ToUpper(hex.EncodeToString(decodedRom.Header20.CHRROMSHA256[:])))
+			} else {
+				println("Skipping CHR checksums, as there is no CHR for this ROM.")
+			}
+		} else if decodedRom.Header10 != nil {
+			binary.BigEndian.PutUint32(prgCrc32Bytes, decodedRom.Header10.PRGROMCRC32)
+			println("PRG CRC32 : " + strings.ToUpper(hex.EncodeToString(prgCrc32Bytes)))
+			println("PRG MD5   : " + strings.ToUpper(hex.EncodeToString(decodedRom.Header10.PRGROMMD5[:])))
+			println("PRG SHA1  : " + strings.ToUpper(hex.EncodeToString(decodedRom.Header10.PRGROMSHA1[:])))
+			println("PRG SHA256: " + strings.ToUpper(hex.EncodeToString(decodedRom.Header10.PRGROMSHA256[:])))
+
+			if decodedRom.Header10.CHRROMCalculatedSize > 0 {
+				binary.BigEndian.PutUint32(chrCrc32Bytes, decodedRom.Header10.CHRROMCRC32)
+				println("CHR CRC32 : " + strings.ToUpper(hex.EncodeToString(chrCrc32Bytes)))
+				println("CHR MD5   : " + strings.ToUpper(hex.EncodeToString(decodedRom.Header10.CHRROMMD5[:])))
+				println("CHR SHA1  : " + strings.ToUpper(hex.EncodeToString(decodedRom.Header10.CHRROMSHA1[:])))
+				println("CHR SHA256: " + strings.ToUpper(hex.EncodeToString(decodedRom.Header10.CHRROMSHA256[:])))
+			} else {
+				println("Skipping CHR checksums, as there is no CHR for this ROM.")
+			}
+		}
+	}
+
 	return decodedRom, err
 }
 
 // Read in an FDS file and decode it into an FDSArchiveFile struct
-func LoadFDSArchive(fileName string, basePath string, generateChecksums bool) (*FDSTool.FDSArchiveFile, error) {
+func LoadFDSArchive(fileName string, basePath string, generateChecksums bool, printChecksums bool) (*FDSTool.FDSArchiveFile, error) {
 	byteSlice, relativePath, err := LoadFile(fileName, basePath)
 	if err != nil {
 		return nil, err
@@ -140,11 +234,22 @@ func LoadFDSArchive(fileName string, basePath string, generateChecksums bool) (*
 		decodedArchive.Name = tempName
 	}
 
+	println("Loading FDS archive: " + fileName)
+
+	if printChecksums {
+		crc32Bytes := make([]byte, 4)
+		binary.BigEndian.PutUint32(crc32Bytes, decodedArchive.CRC32)
+		println("CRC32 : " + strings.ToUpper(hex.EncodeToString(crc32Bytes)))
+		println("MD5   : " + strings.ToUpper(hex.EncodeToString(decodedArchive.MD5[:])))
+		println("SHA1  : " + strings.ToUpper(hex.EncodeToString(decodedArchive.SHA1[:])))
+		println("SHA256: " + strings.ToUpper(hex.EncodeToString(decodedArchive.SHA256[:])))
+	}
+
 	return decodedArchive, nil
 }
 
 // Read in INES and NES 2.0 files recursively from a given path
-func LoadROMRecursive(basePath string, enableInes bool, preserveTrainers bool) ([]*NESTool.NESROM, error) {
+func LoadROMRecursive(basePath string, enableInes bool, preserveTrainers bool, printChecksums bool) ([]*NESTool.NESROM, error) {
 	romSlice := make([]*NESTool.NESROM, 0)
 	nesRegEx, err := regexp.Compile("^.+\\.nes$")
 	if err != nil {
@@ -162,7 +267,7 @@ func LoadROMRecursive(basePath string, enableInes bool, preserveTrainers bool) (
 		}
 
 		if !info.IsDir() && nesRegEx.MatchString(info.Name()) {
-			tempRom, err := LoadROM(path, enableInes, preserveTrainers, basePath)
+			tempRom, err := LoadROM(path, enableInes, preserveTrainers, basePath, printChecksums)
 			if err != nil {
 				switch err.(type) {
 				case *NESTool.NESROMError:
@@ -173,7 +278,6 @@ func LoadROMRecursive(basePath string, enableInes bool, preserveTrainers bool) (
 			}
 
 			if tempRom != nil {
-				println("Loading ROM: " + path)
 				romSlice = append(romSlice, tempRom)
 			}
 		}
@@ -189,7 +293,7 @@ func LoadROMRecursive(basePath string, enableInes bool, preserveTrainers bool) (
 }
 
 // Read in UNIF files recursively from a given base path
-func LoadUNIFRecursive(basePath string) ([]*NESTool.NESROM, error) {
+func LoadUNIFRecursive(basePath string, printChecksums bool) ([]*NESTool.NESROM, error) {
 	romSlice := make([]*NESTool.NESROM, 0)
 	unifRegEx, err := regexp.Compile("^.+\\.unif$")
 	if err != nil {
@@ -212,7 +316,7 @@ func LoadUNIFRecursive(basePath string) ([]*NESTool.NESROM, error) {
 		}
 
 		if !info.IsDir() && (unifRegEx.MatchString(info.Name()) || unfRegEx.MatchString(info.Name())) {
-			tempRom, err := LoadUNIF(path, basePath)
+			tempRom, err := LoadUNIF(path, basePath, printChecksums)
 			if err != nil {
 				switch err.(type) {
 				case *NESTool.NESROMError:
@@ -223,7 +327,6 @@ func LoadUNIFRecursive(basePath string) ([]*NESTool.NESROM, error) {
 			}
 
 			if tempRom != nil {
-				println("Loading ROM: " + path)
 				romSlice = append(romSlice, tempRom)
 			}
 		}
@@ -239,7 +342,7 @@ func LoadUNIFRecursive(basePath string) ([]*NESTool.NESROM, error) {
 }
 
 // Read in FDS files recursively from a given path
-func LoadFDSArchiveRecursive(basePath string, generateChecksums bool) ([]*FDSTool.FDSArchiveFile, error) {
+func LoadFDSArchiveRecursive(basePath string, generateChecksums bool, printChecksums bool) ([]*FDSTool.FDSArchiveFile, error) {
 	archiveSlice := make([]*FDSTool.FDSArchiveFile, 0)
 	fdsRegEx, err := regexp.Compile("^.+\\.fds$")
 	if err != nil {
@@ -257,7 +360,7 @@ func LoadFDSArchiveRecursive(basePath string, generateChecksums bool) ([]*FDSToo
 		}
 
 		if !info.IsDir() && fdsRegEx.MatchString(info.Name()) {
-			tempArchive, err := LoadFDSArchive(path, basePath, generateChecksums)
+			tempArchive, err := LoadFDSArchive(path, basePath, generateChecksums, printChecksums)
 			if err != nil {
 				switch err.(type) {
 				case *FDSTool.FDSError:
@@ -268,7 +371,6 @@ func LoadFDSArchiveRecursive(basePath string, generateChecksums bool) ([]*FDSToo
 			}
 
 			if tempArchive != nil {
-				println("Loading FDS archive: " + path)
 				archiveSlice = append(archiveSlice, tempArchive)
 			}
 		}
@@ -284,8 +386,8 @@ func LoadFDSArchiveRecursive(basePath string, generateChecksums bool) ([]*FDSToo
 }
 
 // Read in INES and NES 2.0 ROMs recursively and add them to a map, with checksums as keys
-func LoadROMRecursiveMap(basePath string, enableInes bool, preserveTrainers bool, hashTypes uint64) (map[string]*NESTool.NESROM, error) {
-	romSlice, err := LoadROMRecursive(basePath, enableInes, preserveTrainers)
+func LoadROMRecursiveMap(basePath string, enableInes bool, preserveTrainers bool, hashTypes uint64, printChecksums bool) (map[string]*NESTool.NESROM, error) {
+	romSlice, err := LoadROMRecursive(basePath, enableInes, preserveTrainers, printChecksums)
 	if err != nil {
 		switch err.(type) {
 		case *NESTool.NESROMError:
@@ -330,8 +432,8 @@ func LoadROMRecursiveMap(basePath string, enableInes bool, preserveTrainers bool
 }
 
 // Read in UNIF files recursively and add them to a map, with checksums as keys
-func LoadUNIFRecursiveMap(basePath string, hashTypes uint64) (map[string]*NESTool.NESROM, error) {
-	romSlice, err := LoadUNIFRecursive(basePath)
+func LoadUNIFRecursiveMap(basePath string, hashTypes uint64, printChecksums bool) (map[string]*NESTool.NESROM, error) {
+	romSlice, err := LoadUNIFRecursive(basePath, printChecksums)
 	if err != nil {
 		switch err.(type) {
 		case *NESTool.NESROMError:
@@ -377,8 +479,8 @@ func LoadUNIFRecursiveMap(basePath string, hashTypes uint64) (map[string]*NESToo
 
 // Read in FDS files and add them to a map, with checksums as keys
 //TODO: Determine a better way to identify duplicates based on archive/filesystem contents
-func LoadFDSArchiveRecursiveMap(basePath string, generateChecksums bool, hashTypes uint64) (map[string]*FDSTool.FDSArchiveFile, error) {
-	archiveSlice, err := LoadFDSArchiveRecursive(basePath, generateChecksums)
+func LoadFDSArchiveRecursiveMap(basePath string, generateChecksums bool, hashTypes uint64, printChecksums bool) (map[string]*FDSTool.FDSArchiveFile, error) {
+	archiveSlice, err := LoadFDSArchiveRecursive(basePath, generateChecksums, printChecksums)
 	if err != nil {
 		switch err.(type) {
 		case *FDSTool.FDSError:
