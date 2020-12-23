@@ -652,7 +652,7 @@ func UpdateChecksums(nesRom *NESROM) error {
 			nesRom.Header20.PRGROMSHA256 = sha256.Sum256(nesRom.PRGROMData)
 		}
 
-		if nesRom.CHRROMData != nil {
+		if nesRom.CHRROMData != nil && len(nesRom.CHRROMData) > 0 {
 			chrRomSum16, err := calculateSum16(nesRom.CHRROMData)
 			if err != nil {
 				return err
@@ -665,7 +665,7 @@ func UpdateChecksums(nesRom *NESROM) error {
 			nesRom.Header20.CHRROMSHA256 = sha256.Sum256(nesRom.CHRROMData)
 		}
 
-		if nesRom.MiscROMData != nil {
+		if nesRom.MiscROMData != nil && len(nesRom.MiscROMData) > 0 {
 			miscRomSum16, err := calculateSum16(nesRom.MiscROMData)
 			if err != nil {
 				return err
@@ -678,7 +678,7 @@ func UpdateChecksums(nesRom *NESROM) error {
 			nesRom.Header20.MiscROMSHA256 = sha256.Sum256(nesRom.MiscROMData)
 		}
 
-		if nesRom.TrainerData != nil {
+		if nesRom.TrainerData != nil && len(nesRom.TrainerData) > 0 {
 			trainerSum16, err := calculateSum16(nesRom.TrainerData)
 			if err != nil {
 				return err
@@ -706,7 +706,7 @@ func UpdateChecksums(nesRom *NESROM) error {
 			nesRom.Header10.PRGROMSHA256 = sha256.Sum256(nesRom.PRGROMData)
 		}
 
-		if nesRom.CHRROMData != nil {
+		if nesRom.CHRROMData != nil && len(nesRom.CHRROMData) > 0 {
 			chrRomSum16, err := calculateSum16(nesRom.CHRROMData)
 			if err != nil {
 				return err
@@ -719,7 +719,7 @@ func UpdateChecksums(nesRom *NESROM) error {
 			nesRom.Header10.CHRROMSHA256 = sha256.Sum256(nesRom.CHRROMData)
 		}
 
-		if nesRom.TrainerData != nil {
+		if nesRom.TrainerData != nil && len(nesRom.TrainerData) > 0 {
 			trainerSum16, err := calculateSum16(nesRom.TrainerData)
 			if err != nil {
 				return err

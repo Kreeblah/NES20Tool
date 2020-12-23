@@ -32,6 +32,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -97,6 +98,7 @@ func LoadROM(fileName string, enableInes bool, preserveTrainer bool, basePath st
 	println("Loading ROM: " + fileName)
 
 	if printChecksums {
+		println("ROM Size  : " + strconv.FormatUint(decodedRom.Size, 10))
 		crc32Bytes := make([]byte, 4)
 		binary.BigEndian.PutUint32(crc32Bytes, decodedRom.CRC32)
 		println("ROM CRC32 : " + strings.ToUpper(hex.EncodeToString(crc32Bytes)))
@@ -109,6 +111,7 @@ func LoadROM(fileName string, enableInes bool, preserveTrainer bool, basePath st
 		prgCrc32Bytes := make([]byte, 4)
 		chrCrc32Bytes := make([]byte, 4)
 		if decodedRom.Header20 != nil {
+			println("PRG Size  : " + strconv.FormatUint(decodedRom.Header20.PRGROMCalculatedSize, 10))
 			binary.BigEndian.PutUint16(prgSum16Bytes, decodedRom.Header20.PRGROMSum16)
 			println("PRG Sum16 : " + strings.ToUpper(hex.EncodeToString(prgSum16Bytes)))
 			binary.BigEndian.PutUint32(prgCrc32Bytes, decodedRom.Header20.PRGROMCRC32)
@@ -118,7 +121,8 @@ func LoadROM(fileName string, enableInes bool, preserveTrainer bool, basePath st
 			println("PRG SHA256: " + strings.ToUpper(hex.EncodeToString(decodedRom.Header20.PRGROMSHA256[:])))
 
 			if decodedRom.Header20.CHRROMCalculatedSize > 0 {
-				binary.BigEndian.PutUint16(prgSum16Bytes, decodedRom.Header20.CHRROMSum16)
+				println("CHR Size  : " + strconv.FormatUint(decodedRom.Header20.CHRROMCalculatedSize, 10))
+				binary.BigEndian.PutUint16(chrSum16Bytes, decodedRom.Header20.CHRROMSum16)
 				println("CHR Sum16 : " + strings.ToUpper(hex.EncodeToString(chrSum16Bytes)))
 				binary.BigEndian.PutUint32(chrCrc32Bytes, decodedRom.Header20.CHRROMCRC32)
 				println("CHR CRC32 : " + strings.ToUpper(hex.EncodeToString(chrCrc32Bytes)))
@@ -129,6 +133,7 @@ func LoadROM(fileName string, enableInes bool, preserveTrainer bool, basePath st
 				println("Skipping CHR checksums, as there is no CHR for this ROM.")
 			}
 		} else if decodedRom.Header10 != nil {
+			println("PRG Size  : " + strconv.FormatUint(decodedRom.Header10.PRGROMCalculatedSize, 10))
 			binary.BigEndian.PutUint16(prgSum16Bytes, decodedRom.Header10.PRGROMSum16)
 			println("PRG Sum16 : " + strings.ToUpper(hex.EncodeToString(prgSum16Bytes)))
 			binary.BigEndian.PutUint32(prgCrc32Bytes, decodedRom.Header10.PRGROMCRC32)
@@ -138,7 +143,8 @@ func LoadROM(fileName string, enableInes bool, preserveTrainer bool, basePath st
 			println("PRG SHA256: " + strings.ToUpper(hex.EncodeToString(decodedRom.Header10.PRGROMSHA256[:])))
 
 			if decodedRom.Header10.CHRROMCalculatedSize > 0 {
-				binary.BigEndian.PutUint16(prgSum16Bytes, decodedRom.Header10.CHRROMSum16)
+				println("CHR Size  : " + strconv.FormatUint(decodedRom.Header10.CHRROMCalculatedSize, 10))
+				binary.BigEndian.PutUint16(chrSum16Bytes, decodedRom.Header10.CHRROMSum16)
 				println("CHR Sum16 : " + strings.ToUpper(hex.EncodeToString(chrSum16Bytes)))
 				binary.BigEndian.PutUint32(chrCrc32Bytes, decodedRom.Header10.CHRROMCRC32)
 				println("CHR CRC32 : " + strings.ToUpper(hex.EncodeToString(chrCrc32Bytes)))
@@ -178,6 +184,7 @@ func LoadUNIF(fileName string, basePath string, printChecksums bool) (*NESTool.N
 	println("Loading ROM: " + fileName)
 
 	if printChecksums {
+		println("ROM Size  : " + strconv.FormatUint(decodedRom.Size, 10))
 		crc32Bytes := make([]byte, 4)
 		binary.BigEndian.PutUint32(crc32Bytes, decodedRom.CRC32)
 		println("ROM CRC32 : " + strings.ToUpper(hex.EncodeToString(crc32Bytes)))
@@ -190,6 +197,7 @@ func LoadUNIF(fileName string, basePath string, printChecksums bool) (*NESTool.N
 		prgCrc32Bytes := make([]byte, 4)
 		chrCrc32Bytes := make([]byte, 4)
 		if decodedRom.Header20 != nil {
+			println("PRG Size  : " + strconv.FormatUint(decodedRom.Header20.PRGROMCalculatedSize, 10))
 			binary.BigEndian.PutUint16(prgSum16Bytes, decodedRom.Header20.PRGROMSum16)
 			println("PRG Sum16 : " + strings.ToUpper(hex.EncodeToString(prgSum16Bytes)))
 			binary.BigEndian.PutUint32(prgCrc32Bytes, decodedRom.Header20.PRGROMCRC32)
@@ -199,7 +207,8 @@ func LoadUNIF(fileName string, basePath string, printChecksums bool) (*NESTool.N
 			println("PRG SHA256: " + strings.ToUpper(hex.EncodeToString(decodedRom.Header20.PRGROMSHA256[:])))
 
 			if decodedRom.Header20.CHRROMCalculatedSize > 0 {
-				binary.BigEndian.PutUint16(prgSum16Bytes, decodedRom.Header20.CHRROMSum16)
+				println("CHR Size  : " + strconv.FormatUint(decodedRom.Header20.CHRROMCalculatedSize, 10))
+				binary.BigEndian.PutUint16(chrSum16Bytes, decodedRom.Header20.CHRROMSum16)
 				println("CHR Sum16 : " + strings.ToUpper(hex.EncodeToString(chrSum16Bytes)))
 				binary.BigEndian.PutUint32(chrCrc32Bytes, decodedRom.Header20.CHRROMCRC32)
 				println("CHR CRC32 : " + strings.ToUpper(hex.EncodeToString(chrCrc32Bytes)))
@@ -210,6 +219,7 @@ func LoadUNIF(fileName string, basePath string, printChecksums bool) (*NESTool.N
 				println("Skipping CHR checksums, as there is no CHR for this ROM.")
 			}
 		} else if decodedRom.Header10 != nil {
+			println("PRG Size  : " + strconv.FormatUint(decodedRom.Header10.PRGROMCalculatedSize, 10))
 			binary.BigEndian.PutUint16(prgSum16Bytes, decodedRom.Header10.PRGROMSum16)
 			println("PRG Sum16 : " + strings.ToUpper(hex.EncodeToString(prgSum16Bytes)))
 			binary.BigEndian.PutUint32(prgCrc32Bytes, decodedRom.Header10.PRGROMCRC32)
@@ -219,7 +229,8 @@ func LoadUNIF(fileName string, basePath string, printChecksums bool) (*NESTool.N
 			println("PRG SHA256: " + strings.ToUpper(hex.EncodeToString(decodedRom.Header10.PRGROMSHA256[:])))
 
 			if decodedRom.Header10.CHRROMCalculatedSize > 0 {
-				binary.BigEndian.PutUint16(prgSum16Bytes, decodedRom.Header10.CHRROMSum16)
+				println("CHR Size  : " + strconv.FormatUint(decodedRom.Header10.CHRROMCalculatedSize, 10))
+				binary.BigEndian.PutUint16(chrSum16Bytes, decodedRom.Header10.CHRROMSum16)
 				println("CHR Sum16 : " + strings.ToUpper(hex.EncodeToString(chrSum16Bytes)))
 				binary.BigEndian.PutUint32(chrCrc32Bytes, decodedRom.Header10.CHRROMCRC32)
 				println("CHR CRC32 : " + strings.ToUpper(hex.EncodeToString(chrCrc32Bytes)))
