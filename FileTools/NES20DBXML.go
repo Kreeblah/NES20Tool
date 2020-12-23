@@ -215,7 +215,13 @@ func MarshalNES20DBXMLFromROMMap(nesRoms map[string]*NESTool.NESROM) (string, er
 			}
 
 			tempGame.Console.Region = nesRoms[index].Header20.CPUPPUTiming
-			tempGame.Console.Type = nesRoms[index].Header20.ConsoleType
+
+			if nesRoms[index].Header20.ConsoleType < 3 {
+				tempGame.Console.Type = nesRoms[index].Header20.ConsoleType
+			} else {
+				tempGame.Console.Type = nesRoms[index].Header20.ExtendedConsoleType
+			}
+
 			tempGame.Expansion.Type = nesRoms[index].Header20.DefaultExpansion
 
 			if nesRoms[index].Header20.CHRRAMSize > 0 {
@@ -392,7 +398,13 @@ func UnmarshalNES20DBXMLToROMMap(xmlPayload string) (map[string]*NESTool.NESROM,
 		}
 
 		tempRom.Header20.CPUPPUTiming = xmlStruct.Games[index].Console.Region
-		tempRom.Header20.ConsoleType = xmlStruct.Games[index].Console.Type
+
+		if xmlStruct.Games[index].Console.Type < 4 {
+			tempRom.Header20.ConsoleType = xmlStruct.Games[index].Console.Type
+		} else {
+			tempRom.Header20.ConsoleType = 3
+			tempRom.Header20.ExtendedConsoleType = xmlStruct.Games[index].Console.Type
+		}
 
 		tempRom.Header20.DefaultExpansion = xmlStruct.Games[index].Expansion.Type
 

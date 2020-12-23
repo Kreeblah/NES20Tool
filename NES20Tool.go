@@ -36,12 +36,12 @@ func main() {
 	romSetEnableFDSHeaders := flag.Bool("enable-fds-headers", false, "Enable writing FDS headers for organization.")
 	romSetEnableV1 := flag.Bool("enable-ines", false, "Enable iNES header support.  iNES headers will always be lower priority for operations than NES 2.0 headers.")
 	romSetGenerateFDSCRCs := flag.Bool("generate-fds-crcs", false, "Generate FDS CRCs for data chunks.  Few, if any, emulators use these.")
-	romSetCommand := flag.String("operation", "", "Operation to perform on the ROM set. {read|write}")
+	romSetCommand := flag.String("operation", "", "Required.  Operation to perform on the ROM set. {read|write}")
 	romSetOrganization := flag.Bool("organization", false, "Read/write relative file location information for automatic organization.")
 	romSetTruncateRoms := flag.Bool("truncate-roms", false, "Truncate PRGROM and CHRROM to the sizes specified in the header.")
 	romSetPreserveTrainers := flag.Bool("preserve-trainers", false, "Preserve trainers in read/write process.")
 	romOutputBasePath := flag.String("rom-output-base-path", "", "The path to use for writing organized NES and/or FDS ROMs.")
-	romSetSourceDirectory := flag.String("rom-source-path", "", "The path to a directory with NES and/or FDS ROMs to use for the operation.")
+	romSetSourceDirectory := flag.String("rom-source-path", "", "Required.  The path to a directory with NES and/or FDS ROMs to use for the operation.")
 	romSetXmlFile := flag.String("xml-file", "", "The path to an XML file to use for the operation.")
 	xmlFormat := flag.String("xml-format", "default", "The format of the imported or exported XML file. {default|nes20db}")
 
@@ -53,14 +53,18 @@ func main() {
 		os.Exit(1)
 	}
 
-	if *romSetOrganization && *romSetCommand == "read" && *romSetSourceDirectory == "" {
+	if *romSetSourceDirectory == "" {
 		printUsage()
 		os.Exit(1)
 	}
 
-	if *romSetOrganization && *romSetCommand == "write" && *romOutputBasePath == "" {
-		printUsage()
-		os.Exit(1)
+	if *romSetCommand == "write" && *romOutputBasePath == "" {
+		if *romSetOrganization {
+			printUsage()
+			os.Exit(1)
+		} else {
+			*romOutputBasePath = *romSetSourceDirectory
+		}
 	}
 
 	if *xmlFormat != "default" && *xmlFormat != "nes20db" {
