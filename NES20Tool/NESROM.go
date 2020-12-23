@@ -361,7 +361,7 @@ func EncodeNESROM(romModel *NESROM, enableInes bool, truncateRom bool, preserveT
 			binary.LittleEndian.PutUint16(CHRROMBytes, romModel.Header20.CHRROMSize)
 			headerBytes[5] = CHRROMBytes[0]
 			headerBytes[9] = headerBytes[9] | ((CHRROMBytes[1] & 0b00001111) << 4)
-		} else {
+		} else if romModel.Header20.CHRROMSizeExponent > 0 || romModel.Header20.CHRROMSizeMultiplier > 0 {
 			headerBytes[5] = (romModel.Header20.CHRROMSizeExponent << 2) | romModel.Header20.CHRROMSizeMultiplier
 			headerBytes[9] = headerBytes[9] | 0b11110000
 		}
@@ -517,13 +517,13 @@ func FactorRomSize(romSize uint64, romType uint64) (uint16, uint8, uint8) {
 	}
 
 	if romSize%3 == 0 {
-		sizeMultiplier = 2
+		sizeMultiplier = 3
 	} else if romSize%5 == 0 {
-		sizeMultiplier = 4
+		sizeMultiplier = 5
 	} else if romSize%7 == 0 {
-		sizeMultiplier = 6
+		sizeMultiplier = 7
 	} else {
-		sizeMultiplier = 0
+		sizeMultiplier = 1
 	}
 
 	var tempSize uint64
@@ -534,10 +534,12 @@ func FactorRomSize(romSize uint64, romType uint64) (uint16, uint8, uint8) {
 		tempSize = romSize
 	}
 
+	sizeMultiplier = (sizeMultiplier - 1) >> 1
+
 	sizeExponent = 0
 
-	for tempSize > 0 {
-		tempSize = tempSize << 1
+	for tempSize > 1 {
+		tempSize = tempSize >> 1
 		sizeExponent = sizeExponent + 1
 	}
 
