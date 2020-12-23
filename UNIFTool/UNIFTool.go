@@ -78,6 +78,11 @@ func DecodeUNIFROM(inputFile []byte) (*NESTool.NESROM, error) {
 
 // Get each of the UNIF chunks in the file
 func GetUNIFChunks(inputData []byte) (map[string][]byte, error) {
+	// UNIF header
+	if bytes.Compare(inputData[0:4], []byte(UNIF_MAGIC)) != 0 {
+		return nil, &NESTool.NESROMError{Text: "Not a valid UNIF ROM."}
+	}
+
 	unifChunks := make(map[string][]byte, 0)
 
 	// Skipping the four-byte UNIF version number and the reserved bytes
@@ -130,11 +135,12 @@ func getRomData(unifChunks map[string][]byte, romType string, checksumType strin
 	romData := make([]byte, 0)
 
 	// PRG and CHR chunks are named PRG0, PRG1, etc. through PRGF.
-	// Not all of these chunks necessarily exist, but the complete
-	// PRG and/or CHR ROMs are the concatenation of them all in
-	// numerical order.  Additionally, checksums are not required
-	// to be included, so we can only hard fail if one exists and is
-	// a mismatch.
+	// Not all of these chunks necessarily exist and they're not
+	// necessarily going to be in any particular order in the actual
+	// UNIF file, but the complete PRG and/or CHR ROMs are the
+	// concatenation of them all in numerical order by chunk name.
+	// Additionally, checksums are not required to be included, so
+	// we can only hard fail if one exists for a chunk and is a mismatch.
 	if unifChunks[romType+"0"] != nil {
 		if unifChunks[checksumType+"0"] != nil {
 			calculatedCrc32 := crc32.ChecksumIEEE(unifChunks[romType+"0"])
