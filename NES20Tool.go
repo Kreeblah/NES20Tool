@@ -36,7 +36,7 @@ func main() {
 	romSetEnableFDSHeaders := flag.Bool("enable-fds-headers", false, "Enable writing FDS headers for organization.")
 	romSetEnableV1 := flag.Bool("enable-ines", false, "Enable iNES header support.  iNES headers will always be lower priority for operations than NES 2.0 headers.")
 	romSetGenerateFDSCRCs := flag.Bool("generate-fds-crcs", false, "Generate FDS CRCs for data chunks.  Few, if any, emulators use these.")
-	romSetCommand := flag.String("operation", "", "Required.  Operation to perform on the ROM set. {read|write}")
+	romSetCommand := flag.String("operation", "", "Required.  Operation to perform on the ROM set. {read|write|transform}")
 	romSetOrganization := flag.Bool("organization", false, "Read/write relative file location information for automatic organization.")
 	romSetPrintChecksums := flag.Bool("print-checksums", false, "Print checksums as ROMs are loaded or processed.")
 	romSetTruncateRoms := flag.Bool("truncate-roms", false, "Truncate PRGROM and CHRROM to the sizes specified in the header.")
@@ -45,16 +45,18 @@ func main() {
 	romSetSourceDirectory := flag.String("rom-source-path", "", "Required.  The path to a directory with NES and/or FDS ROMs to use for the operation.")
 	romSetXmlFile := flag.String("xml-file", "", "The path to an XML file to use for the operation.")
 	xmlFormat := flag.String("xml-format", "default", "The format of the imported or exported XML file. {default|nes20db}")
+	formatTransformDestination := flag.String("format-transform-destination", "", "Destination file for format transform operations.")
+	formatTransformType := flag.String("format-transform-type", "", "Format of destination file for transform operations.  {default|nes20db|sanni}")
 
 	flag.Parse()
 
 	// Options validation
-	if *romSetCommand != "read" && *romSetCommand != "write" {
+	if *romSetCommand != "read" && *romSetCommand != "write" && *romSetCommand != "transform" {
 		printUsage()
 		os.Exit(1)
 	}
 
-	if *romSetSourceDirectory == "" {
+	if *romSetSourceDirectory == "" && *romSetCommand != "transform" {
 		printUsage()
 		os.Exit(1)
 	}
@@ -96,6 +98,15 @@ func main() {
 		}
 
 		*romSetSourceDirectory = tempSourceDirectory
+	}
+
+	if *romSetCommand != "transform" && (*formatTransformDestination == "" || *formatTransformType == "") {
+		printUsage()
+		os.Exit(1)
+	}
+
+	if *romSetCommand == "transform" {
+		*romSetOrganization = true
 	}
 
 	// Read a directory structure and generate an XML file to represent it
@@ -261,6 +272,55 @@ func main() {
 				}
 				println(err.Error())
 			}
+		}
+
+		os.Exit(0)
+	} else if *romSetCommand == "transform" {
+		println("Loading XML file from: " + *romSetXmlFile)
+		xmlPayload, err := ioutil.ReadFile(*romSetXmlFile)
+		if err != nil {
+			panic(err)
+		}
+
+		println("Reading source data")
+		var romData map[string]*NESTool.NESROM
+		var archiveData map[string]*FDSTool.FDSArchiveFile
+
+		if *xmlFormat == "default" {
+			romData, archiveData, err = FileTools.UnmarshalXMLToROMMap(string(xmlPayload), *romSetEnableV1, *romSetPreserveTrainers, *romOutputBasePath != "")
+			if err != nil {
+				panic(err)
+			}
+		} else if *xmlFormat == "nes20db" {
+			romData, err = FileTools.UnmarshalNES20DBXMLToROMMap(string(xmlPayload), *romSetOrganization)
+			if err != nil {
+				panic(err)
+			}
+		}
+
+		var transformPayload string
+
+		if *formatTransformType == "default" {
+			transformPayload, err = FileTools.MarshalXMLFromROMMap(romData, archiveData, *romSetEnableV1, *romSetPreserveTrainers, *romSetOrganization)
+			if err != nil {
+				panic(err)
+			}
+		} else if *formatTransformType == "nes20db" {
+			transformPayload, err = FileTools.MarshalNES20DBXMLFromROMMap(romData, *romSetOrganization)
+			if err != nil {
+				panic(err)
+			}
+		} else if *formatTransformType == "sanni" {
+			transformPayload, err = FileTools.MarshalDBFileFromROMMap(romData, *romSetEnableV1)
+			if err != nil {
+				panic(err)
+			}
+		}
+
+		println("Writing transformed payload to: " + *formatTransformDestination)
+		err = FileTools.WriteStringToFile(transformPayload, *formatTransformDestination)
+		if err != nil {
+			panic(err)
 		}
 
 		os.Exit(0)
