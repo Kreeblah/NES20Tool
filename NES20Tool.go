@@ -77,7 +77,6 @@ func main() {
 	if *xmlFormat == "nes20db" {
 		*romSetEnableV1 = false
 		*romSetEnableFDS = false
-		*romSetOrganization = false
 	}
 
 	// Get the aboslute path for easier calculation of relative ROM paths
@@ -126,7 +125,7 @@ func main() {
 				panic(err)
 			}
 		} else if *xmlFormat == "nes20db" {
-			xmlPayload, err = FileTools.MarshalNES20DBXMLFromROMMap(romMap)
+			xmlPayload, err = FileTools.MarshalNES20DBXMLFromROMMap(romMap, *romSetOrganization)
 			if err != nil {
 				panic(err)
 			}
@@ -162,7 +161,7 @@ func main() {
 
 			hashTypeMatch = ProcessingTools.HASH_TYPE_SHA256
 		} else if *xmlFormat == "nes20db" {
-			romData, err = FileTools.UnmarshalNES20DBXMLToROMMap(string(xmlPayload))
+			romData, err = FileTools.UnmarshalNES20DBXMLToROMMap(string(xmlPayload), *romSetOrganization)
 			if err != nil {
 				panic(err)
 			}

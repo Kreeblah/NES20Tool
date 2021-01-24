@@ -29,6 +29,7 @@ import (
 	"encoding/hex"
 	"encoding/xml"
 	"errors"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -46,8 +47,9 @@ type NES20DBXML struct {
 }
 
 type NES20DBGame struct {
-	Text   string `xml:",chardata"`
-	Prgrom struct {
+	Text    string `xml:",chardata"`
+	Comment string `xml:",comment"`
+	Prgrom  struct {
 		Text  string `xml:",chardata"`
 		Size  uint64 `xml:"size,attr"`
 		Crc32 string `xml:"crc32,attr"`
@@ -120,7 +122,7 @@ type NES20DBGame struct {
 }
 
 // Take a map of NES 2.0 ROMs and marshal an XML file in nes20db format from them
-func MarshalNES20DBXMLFromROMMap(nesRoms map[string]*NESTool.NESROM) (string, error) {
+func MarshalNES20DBXMLFromROMMap(nesRoms map[string]*NESTool.NESROM, enableOrganization bool) (string, error) {
 	romXml := &NES20DBXML{}
 
 	romXml.Date = time.Now().Format("2006-01-02")
@@ -128,6 +130,15 @@ func MarshalNES20DBXMLFromROMMap(nesRoms map[string]*NESTool.NESROM) (string, er
 	for index := range nesRoms {
 		if nesRoms[index].Header20 != nil {
 			tempGame := &NES20DBGame{}
+
+			if enableOrganization {
+				tempRelativePath := nesRoms[index].RelativePath
+				if tempRelativePath[0] == os.PathSeparator {
+					tempRelativePath = tempRelativePath[1:]
+				}
+				tempRelativePath = strings.Replace(tempRelativePath, string(os.PathSeparator), "\\", -1)
+				tempGame.Comment = " " + tempRelativePath + " "
+			}
 
 			tempGame.Prgrom.Size = nesRoms[index].Header20.PRGROMCalculatedSize
 			tempGame.Prgrom.Sha1 = strings.ToUpper(hex.EncodeToString(nesRoms[index].Header20.PRGROMSHA1[:]))
@@ -277,7 +288,7 @@ func MarshalNES20DBXMLFromROMMap(nesRoms map[string]*NESTool.NESROM) (string, er
 }
 
 // Unmarshal an nes20db XML file to a map of NESROM structs, with their SHA1 checksum as the key
-func UnmarshalNES20DBXMLToROMMap(xmlPayload string) (map[string]*NESTool.NESROM, error) {
+func UnmarshalNES20DBXMLToROMMap(xmlPayload string, enableOrganization bool) (map[string]*NESTool.NESROM, error) {
 	xmlStruct := &NES20DBXML{}
 	err := xml.Unmarshal([]byte(xmlPayload), xmlStruct)
 	if err != nil {
@@ -290,6 +301,12 @@ func UnmarshalNES20DBXMLToROMMap(xmlPayload string) (map[string]*NESTool.NESROM,
 		tempRom := &NESTool.NESROM{}
 
 		tempRom.Size = xmlStruct.Games[index].Rom.Size
+
+		if enableOrganization {
+			tempRelativePath := strings.TrimSpace(xmlStruct.Games[index].Comment)
+			tempRelativePath = strings.Replace(tempRelativePath, "\\", string(os.PathSeparator), -1)
+			tempRom.RelativePath = tempRelativePath
+		}
 
 		crc32Bytes, err := hex.DecodeString(strings.ToLower(xmlStruct.Games[index].Rom.Crc32))
 		if err == nil {
