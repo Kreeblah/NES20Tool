@@ -46,7 +46,7 @@ func main() {
 	romSetXmlFile := flag.String("xml-file", "", "The path to an XML file to use for the operation.")
 	xmlFormat := flag.String("xml-format", "default", "The format of the imported or exported XML file. {default|nes20db}")
 	formatTransformDestination := flag.String("format-transform-destination", "", "Destination file for format transform operations.")
-	formatTransformType := flag.String("format-transform-type", "", "Format of destination file for transform operations.  {default|nes20db|sanni}")
+	formatTransformType := flag.String("format-transform-type", "", "Format of destination file for transform operations. {default|nes20db|sanni}")
 
 	flag.Parse()
 
