@@ -28,6 +28,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -35,10 +36,11 @@ import (
 func MarshalDBFileFromROMMap(nesRoms map[string]*NESTool.NESROM, enableInes bool) (string, error) {
 	dbString := ""
 	tempString := ""
-	tempName := ""
+	romNameMap := make(map[string]string)
 
 	for index := range nesRoms {
 		if nesRoms[index].Header20 != nil && nesRoms[index].Header20.ConsoleType == 0 {
+			tempName := ""
 
 			tempString = strconv.Itoa(int(nesRoms[index].Header20.PRGROMCalculatedSize)) + "^^"
 			tempString = tempString + strconv.Itoa(int(nesRoms[index].Header20.CHRROMCalculatedSize)) + "^^"
@@ -61,6 +63,9 @@ func MarshalDBFileFromROMMap(nesRoms map[string]*NESTool.NESROM, enableInes bool
 				tempName = nesRoms[index].RelativePath
 				tempName = tempName[strings.LastIndex(tempName, string(os.PathSeparator)) + 1:]
 				tempName = tempName[:strings.LastIndex(tempName, ".nes")]
+				tempName = strings.Replace(tempName, "&amp;", "&", -1)
+				tempName = strings.Replace(tempName, "&gt;", ">", -1)
+				tempName = strings.Replace(tempName, "&lt;", "<", -1)
 				tempString = tempString + tempName + "^^"
 			} else {
 				tempString = tempString + "^^"
@@ -80,7 +85,11 @@ func MarshalDBFileFromROMMap(nesRoms map[string]*NESTool.NESROM, enableInes bool
 			}
 
 			tempString = tempString + "\000"
+
+			romNameMap[tempName] = tempString
 		} else if enableInes && nesRoms[index].Header10 != nil && nesRoms[index].Header10.VsUnisystem == false {
+			tempName := ""
+
 			tempString = strconv.Itoa(int(nesRoms[index].Header10.PRGROMCalculatedSize)) + "^^"
 			tempString = tempString + strconv.Itoa(int(nesRoms[index].Header10.CHRROMCalculatedSize)) + "^^"
 
@@ -99,9 +108,12 @@ func MarshalDBFileFromROMMap(nesRoms map[string]*NESTool.NESROM, enableInes bool
 			if nesRoms[index].Name != "" {
 				tempString = tempString + nesRoms[index].Name + "^^"
 			} else if nesRoms[index].RelativePath != "" {
-				tempName := nesRoms[index].RelativePath
+				tempName = nesRoms[index].RelativePath
 				tempName = tempName[strings.LastIndex(tempName, string(os.PathSeparator)) + 1:]
 				tempName = tempName[:strings.LastIndex(tempName, ".nes")]
+				tempName = strings.Replace(tempName, "&amp;", "&", -1)
+				tempName = strings.Replace(tempName, "&gt;", ">", -1)
+				tempName = strings.Replace(tempName, "&lt;", "<", -1)
 				tempString = tempString + tempName + "^^"
 			} else {
 				tempString = tempString + "^^"
@@ -121,9 +133,20 @@ func MarshalDBFileFromROMMap(nesRoms map[string]*NESTool.NESROM, enableInes bool
 			}
 
 			tempString = tempString + "\000"
-		}
 
-		dbString = dbString + tempString
+			romNameMap[tempName] = tempString
+		}
+	}
+
+	keys := make([]string, 0, len(romNameMap))
+	for k := range romNameMap {
+		keys = append(keys, k)
+	}
+
+	sort.Strings(keys)
+
+	for _, k := range keys {
+		dbString = dbString + romNameMap[k]
 	}
 
 	return dbString, nil
