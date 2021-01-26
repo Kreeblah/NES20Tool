@@ -36,7 +36,7 @@ func MarshalDBFileFromROMMap(nesRoms map[string]*NESTool.NESROM, enableInes bool
 	dbString := ""
 
 	for index := range nesRoms {
-		if nesRoms[index].Header20 != nil {
+		if nesRoms[index].Header20 != nil && nesRoms[index].Header20.ConsoleType == 0 {
 			dbString = dbString + strconv.Itoa(int(nesRoms[index].Header20.PRGROMCalculatedSize)) + "^^"
 			dbString = dbString + strconv.Itoa(int(nesRoms[index].Header20.CHRROMCalculatedSize)) + "^^"
 
