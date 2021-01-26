@@ -34,73 +34,96 @@ import (
 
 func MarshalDBFileFromROMMap(nesRoms map[string]*NESTool.NESROM, enableInes bool) (string, error) {
 	dbString := ""
+	tempString := ""
+	tempName := ""
 
 	for index := range nesRoms {
 		if nesRoms[index].Header20 != nil && nesRoms[index].Header20.ConsoleType == 0 {
-			dbString = dbString + strconv.Itoa(int(nesRoms[index].Header20.PRGROMCalculatedSize)) + "^^"
-			dbString = dbString + strconv.Itoa(int(nesRoms[index].Header20.CHRROMCalculatedSize)) + "^^"
+
+			tempString = strconv.Itoa(int(nesRoms[index].Header20.PRGROMCalculatedSize)) + "^^"
+			tempString = tempString + strconv.Itoa(int(nesRoms[index].Header20.CHRROMCalculatedSize)) + "^^"
 
 			prgCrc32Bytes := make([]byte, 4)
 			binary.BigEndian.PutUint32(prgCrc32Bytes, nesRoms[index].Header20.PRGROMCRC32)
-			dbString = dbString + strings.ToUpper(hex.EncodeToString(prgCrc32Bytes)) + "^^"
+			tempString = tempString + strings.ToUpper(hex.EncodeToString(prgCrc32Bytes)) + "^^"
 
 			if nesRoms[index].Header20.CHRROMCalculatedSize > 0 {
 				chrCrc32Bytes := make([]byte, 4)
 				binary.BigEndian.PutUint32(chrCrc32Bytes, nesRoms[index].Header20.CHRROMCRC32)
-				dbString = dbString + strings.ToUpper(hex.EncodeToString(chrCrc32Bytes)) + "^^"
+				tempString = tempString + strings.ToUpper(hex.EncodeToString(chrCrc32Bytes)) + "^^"
 			} else {
-				dbString = dbString + "^^"
+				tempString = tempString + "^^"
 			}
 
 			if nesRoms[index].Name != "" {
-				dbString = dbString + nesRoms[index].Name + "^^"
+				tempString = tempString + nesRoms[index].Name + "^^"
 			} else if nesRoms[index].RelativePath != "" {
-				tempName := nesRoms[index].RelativePath
+				tempName = nesRoms[index].RelativePath
 				tempName = tempName[strings.LastIndex(tempName, string(os.PathSeparator)) + 1:]
 				tempName = tempName[:strings.LastIndex(tempName, ".nes")]
-				dbString = dbString + tempName + "^^"
+				tempString = tempString + tempName + "^^"
 			} else {
-				dbString = dbString + "^^"
+				tempString = tempString + "^^"
 			}
 
 			headerBytes, err := NESTool.EncodeNESROMHeader(nesRoms[index], false, false)
 			if err != nil {
 				return "", err
 			}
-			dbString = dbString + strings.ToUpper(hex.EncodeToString(headerBytes)) + "\n"
+			tempString = tempString + strings.ToUpper(hex.EncodeToString(headerBytes))
+
+			tempLength := len(tempString)
+			if tempLength < 255 {
+				for i := 0; i < (255 - tempLength); i++ {
+					tempString = tempString + "\000"
+				}
+			}
+
+			tempString = tempString + "\000"
 		} else if enableInes && nesRoms[index].Header10 != nil && nesRoms[index].Header10.VsUnisystem == false {
-			dbString = dbString + strconv.Itoa(int(nesRoms[index].Header10.PRGROMCalculatedSize)) + "^^"
-			dbString = dbString + strconv.Itoa(int(nesRoms[index].Header10.CHRROMCalculatedSize)) + "^^"
+			tempString = strconv.Itoa(int(nesRoms[index].Header10.PRGROMCalculatedSize)) + "^^"
+			tempString = tempString + strconv.Itoa(int(nesRoms[index].Header10.CHRROMCalculatedSize)) + "^^"
 
 			prgCrc32Bytes := make([]byte, 4)
 			binary.BigEndian.PutUint32(prgCrc32Bytes, nesRoms[index].Header10.PRGROMCRC32)
-			dbString = dbString + strings.ToUpper(hex.EncodeToString(prgCrc32Bytes)) + "^^"
+			tempString = tempString + strings.ToUpper(hex.EncodeToString(prgCrc32Bytes)) + "^^"
 
 			if nesRoms[index].Header10.CHRROMCalculatedSize > 0 {
 				chrCrc32Bytes := make([]byte, 4)
 				binary.BigEndian.PutUint32(chrCrc32Bytes, nesRoms[index].Header10.CHRROMCRC32)
-				dbString = dbString + strings.ToUpper(hex.EncodeToString(chrCrc32Bytes)) + "^^"
+				tempString = tempString + strings.ToUpper(hex.EncodeToString(chrCrc32Bytes)) + "^^"
 			} else {
-				dbString = dbString + "^^"
+				tempString = tempString + "^^"
 			}
 
 			if nesRoms[index].Name != "" {
-				dbString = dbString + nesRoms[index].Name + "^^"
+				tempString = tempString + nesRoms[index].Name + "^^"
 			} else if nesRoms[index].RelativePath != "" {
 				tempName := nesRoms[index].RelativePath
 				tempName = tempName[strings.LastIndex(tempName, string(os.PathSeparator)) + 1:]
 				tempName = tempName[:strings.LastIndex(tempName, ".nes")]
-				dbString = dbString + tempName + "^^"
+				tempString = tempString + tempName + "^^"
 			} else {
-				dbString = dbString + "^^"
+				tempString = tempString + "^^"
 			}
 
 			headerBytes, err := NESTool.EncodeNESROMHeader(nesRoms[index], true, false)
 			if err != nil {
 				return "", err
 			}
-			dbString = dbString + strings.ToUpper(hex.EncodeToString(headerBytes)) + "\n"
+			tempString = tempString + strings.ToUpper(hex.EncodeToString(headerBytes))
+
+			tempLength := len(tempString)
+			if tempLength < 255 {
+				for i := 0; i < (255 - tempLength); i++ {
+					tempString = tempString + "\000"
+				}
+			}
+
+			tempString = tempString + "\000"
 		}
+
+		dbString = dbString + tempString
 	}
 
 	return dbString, nil
