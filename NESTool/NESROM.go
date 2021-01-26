@@ -337,12 +337,54 @@ func EncodeNESROM(romModel *NESROM, enableInes bool, truncateRom bool, preserveT
 		}
 	}
 
+	headerBytes, err := EncodeNESROMHeader(romModel, enableInes, preserveTrainer)
+	if err != nil {
+		return nil, err
+	}
+
+	var rawRomBytes []byte
+
+	romBytes := headerBytes
+
+	if headerVersion == 2 {
+		if truncateRom {
+			rawRomBytes = romModel.ROMData[0:(romModel.Header20.PRGROMCalculatedSize + romModel.Header20.CHRROMCalculatedSize)]
+		} else {
+			rawRomBytes = romModel.ROMData
+		}
+	} else if headerVersion == 1 {
+		if truncateRom && romModel.Header20.MiscROMs == 0 {
+			rawRomBytes = romModel.ROMData[0:(romModel.Header10.PRGROMCalculatedSize + romModel.Header10.CHRROMCalculatedSize)]
+		} else {
+			rawRomBytes = romModel.ROMData
+		}
+	}
+
+	if !preserveTrainer || (!romModel.Header20.Trainer && !romModel.Header10.Trainer) || len(romModel.TrainerData) != 512 {
+		romBytes = append(romBytes, rawRomBytes...)
+	} else {
+		romBytes = append(romBytes, romModel.TrainerData...)
+		romBytes = append(romBytes, rawRomBytes...)
+	}
+
+	return romBytes, nil
+}
+
+func EncodeNESROMHeader(romModel *NESROM, enableInes bool, preserveTrainer bool) ([]byte, error) {
+	headerVersion := 2
+
+	if romModel.Header20 == nil {
+		if romModel.Header10 == nil || !enableInes {
+			return nil, &NESROMError{"Unable to find valid header on ROM model."}
+		} else {
+			headerVersion = 1
+		}
+	}
+
 	headerBytes := make([]byte, 16)
 	for index := range NES_HEADER_MAGIC {
 		headerBytes[index] = NES_HEADER_MAGIC[index]
 	}
-
-	var rawRomBytes []byte
 
 	if headerVersion == 2 {
 		headerBytes[9] = 0b00000000
@@ -426,12 +468,6 @@ func EncodeNESROM(romModel *NESROM, enableInes bool, truncateRom bool, preserveT
 
 		headerBytes[14] = 0b00000011 & romModel.Header20.MiscROMs
 		headerBytes[15] = 0b00111111 & romModel.Header20.DefaultExpansion
-
-		if truncateRom {
-			rawRomBytes = romModel.ROMData[0:(romModel.Header20.PRGROMCalculatedSize + romModel.Header20.CHRROMCalculatedSize)]
-		} else {
-			rawRomBytes = romModel.ROMData
-		}
 	} else if headerVersion == 1 {
 		headerBytes[4] = romModel.Header10.PRGROMSize
 		headerBytes[5] = romModel.Header10.CHRROMSize
@@ -477,24 +513,9 @@ func EncodeNESROM(romModel *NESROM, enableInes bool, truncateRom bool, preserveT
 		headerBytes[13] = 0
 		headerBytes[14] = 0
 		headerBytes[15] = 0
-
-		if truncateRom && romModel.Header20.MiscROMs == 0 {
-			rawRomBytes = romModel.ROMData[0:(romModel.Header10.PRGROMCalculatedSize + romModel.Header10.CHRROMCalculatedSize)]
-		} else {
-			rawRomBytes = romModel.ROMData
-		}
 	}
 
-	romBytes := headerBytes
-
-	if !preserveTrainer || (!romModel.Header20.Trainer && !romModel.Header10.Trainer) || len(romModel.TrainerData) != 512 {
-		romBytes = append(romBytes, rawRomBytes...)
-	} else {
-		romBytes = append(romBytes, romModel.TrainerData...)
-		romBytes = append(romBytes, rawRomBytes...)
-	}
-
-	return romBytes, nil
+	return headerBytes, nil
 }
 
 // Take a total byte size for a PRG or CHR rom and factor it into the possible

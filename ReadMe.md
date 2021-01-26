@@ -29,6 +29,10 @@ To use this tool, compile it for your favorite OS and then run it with the follo
         Enable writing FDS headers for organization.
     -enable-ines
     	Enable iNES header support.  iNES headers will always be lower priority for operations than NES 2.0 headers.
+    -format-transform-destination
+        Destination file for format transform operations.
+    -format-transform-type
+        Format of destination file for transform operations. {default|nes20db|sanni}
     -generate-fds-crcs
         Generate FDS CRCs for data chunks.  Few, if any, emulators use these.
     -operation string

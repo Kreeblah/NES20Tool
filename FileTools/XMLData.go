@@ -807,6 +807,7 @@ func UnmarshalXMLToROMMap(xmlPayload string, enableInes bool, preserveTrainer bo
 		if enableOrganization {
 			tempRelativePath := xmlStruct.XMLROMs[index].RelativePath
 			tempRelativePath = strings.Replace(tempRelativePath, "/", string(os.PathSeparator), -1)
+			tempRelativePath = strings.Replace(tempRelativePath, "&amp;", "&", -1)
 			tempRom.RelativePath = tempRelativePath
 		}
 
