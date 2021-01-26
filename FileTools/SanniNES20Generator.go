@@ -68,7 +68,7 @@ func MarshalDBFileFromROMMap(nesRoms map[string]*NESTool.NESROM, enableInes bool
 				return "", err
 			}
 			dbString = dbString + strings.ToUpper(hex.EncodeToString(headerBytes)) + "\n"
-		} else if nesRoms[index].Header10 != nil && enableInes {
+		} else if enableInes && nesRoms[index].Header10 != nil && nesRoms[index].Header10.VsUnisystem == false {
 			dbString = dbString + strconv.Itoa(int(nesRoms[index].Header10.PRGROMCalculatedSize)) + "^^"
 			dbString = dbString + strconv.Itoa(int(nesRoms[index].Header10.CHRROMCalculatedSize)) + "^^"
 
