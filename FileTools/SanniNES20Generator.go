@@ -61,7 +61,7 @@ func MarshalDBFileFromROMMap(nesRoms map[string]*NESTool.NESROM, enableInes bool
 				tempString = tempString + nesRoms[index].Name + "^^"
 			} else if nesRoms[index].RelativePath != "" {
 				tempName = nesRoms[index].RelativePath
-				tempName = tempName[strings.LastIndex(tempName, string(os.PathSeparator)) + 1:]
+				tempName = tempName[strings.LastIndex(tempName, string(os.PathSeparator))+1:]
 				tempName = tempName[:strings.LastIndex(tempName, ".nes")]
 				tempName = strings.Replace(tempName, "&amp;", "&", -1)
 				tempName = strings.Replace(tempName, "&gt;", ">", -1)
@@ -109,7 +109,7 @@ func MarshalDBFileFromROMMap(nesRoms map[string]*NESTool.NESROM, enableInes bool
 				tempString = tempString + nesRoms[index].Name + "^^"
 			} else if nesRoms[index].RelativePath != "" {
 				tempName = nesRoms[index].RelativePath
-				tempName = tempName[strings.LastIndex(tempName, string(os.PathSeparator)) + 1:]
+				tempName = tempName[strings.LastIndex(tempName, string(os.PathSeparator))+1:]
 				tempName = tempName[:strings.LastIndex(tempName, ".nes")]
 				tempName = strings.Replace(tempName, "&amp;", "&", -1)
 				tempName = strings.Replace(tempName, "&gt;", ">", -1)

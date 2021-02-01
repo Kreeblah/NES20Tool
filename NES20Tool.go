@@ -25,6 +25,7 @@ import (
 	"NES20Tool/NESTool"
 	"NES20Tool/ProcessingTools"
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -36,7 +37,7 @@ func main() {
 	romSetEnableFDSHeaders := flag.Bool("enable-fds-headers", false, "Enable writing FDS headers for organization.")
 	romSetEnableV1 := flag.Bool("enable-ines", false, "Enable iNES header support.  iNES headers will always be lower priority for operations than NES 2.0 headers.")
 	romSetGenerateFDSCRCs := flag.Bool("generate-fds-crcs", false, "Generate FDS CRCs for data chunks.  Few, if any, emulators use these.")
-	romSetCommand := flag.String("operation", "", "Required.  Operation to perform on the ROM set. {read|write|transform}")
+	romSetCommand := flag.String("operation", "", "Required.  Operation to perform on the ROM set. {read|write|transform|rominfo}")
 	romSetOrganization := flag.Bool("organization", false, "Read/write relative file location information for automatic organization.")
 	romSetPrintChecksums := flag.Bool("print-checksums", false, "Print checksums as ROMs are loaded or processed.")
 	romSetTruncateRoms := flag.Bool("truncate-roms", false, "Truncate PRGROM and CHRROM to the sizes specified in the header.")
@@ -47,16 +48,17 @@ func main() {
 	xmlFormat := flag.String("xml-format", "default", "The format of the imported or exported XML file. {default|nes20db}")
 	formatTransformDestination := flag.String("format-transform-destination", "", "Destination file for format transform operations.")
 	formatTransformType := flag.String("format-transform-type", "", "Format of destination file for transform operations. {default|nes20db|sanni}")
+	romToAnalyze := flag.String("rom-file", "", "An NES ROM file to analyze with the rominfo operation.")
 
 	flag.Parse()
 
 	// Options validation
-	if *romSetCommand != "read" && *romSetCommand != "write" && *romSetCommand != "transform" {
+	if *romSetCommand != "read" && *romSetCommand != "write" && *romSetCommand != "transform" && *romSetCommand != "rominfo" {
 		printUsage()
 		os.Exit(1)
 	}
 
-	if *romSetSourceDirectory == "" && *romSetCommand != "transform" {
+	if *romSetSourceDirectory == "" && *romSetCommand != "transform" && *romSetCommand != "rominfo" {
 		printUsage()
 		os.Exit(1)
 	}
@@ -100,13 +102,18 @@ func main() {
 		*romSetSourceDirectory = tempSourceDirectory
 	}
 
-	if *romSetCommand != "transform" && (*formatTransformDestination == "" || *formatTransformType == "") {
+	if *romSetCommand == "transform" && (*formatTransformDestination == "" || *formatTransformType == "") {
 		printUsage()
 		os.Exit(1)
 	}
 
 	if *romSetCommand == "transform" {
 		*romSetOrganization = true
+	}
+
+	if *romSetCommand == "rominfo" && *romToAnalyze == "" {
+		printUsage()
+		os.Exit(1)
 	}
 
 	// Read a directory structure and generate an XML file to represent it
@@ -322,6 +329,15 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
+
+		os.Exit(0)
+	} else if *romSetCommand == "rominfo" {
+		rom, err := FileTools.LoadROM(*romToAnalyze, true, true, "", false)
+		if err != nil {
+			panic(err)
+		}
+
+		fmt.Println(rom)
 
 		os.Exit(0)
 	}

@@ -206,6 +206,10 @@ type NES10XMLFields struct {
 		Text  string `xml:",chardata"`
 		Value bool   `xml:"value,attr"`
 	} `xml:"vsUnisystem"`
+	PlayChoice10 struct {
+		Text  string `xml:",chardata"`
+		Value bool   `xml:"value,attr"`
+	} `xml:"playChoice10"`
 	Prgram struct {
 		Text string `xml:",chardata"`
 		Size uint8  `xml:"size,attr"`
@@ -642,6 +646,7 @@ func MarshalXMLFromROMMap(nesRoms map[string]*NESTool.NESROM, fdsArchives map[st
 			tempXmlRom.Header10.FourScreen.Value = nesRoms[key].Header10.FourScreen
 			tempXmlRom.Header10.Mapper.Value = nesRoms[key].Header10.Mapper
 			tempXmlRom.Header10.VsUnisystem.Value = nesRoms[key].Header10.VsUnisystem
+			tempXmlRom.Header10.PlayChoice10.Value = nesRoms[key].Header10.PlayChoice10
 			tempXmlRom.Header10.Prgram.Size = nesRoms[key].Header10.PRGRAMSize
 			tempXmlRom.Header10.TvSystem.Value = nesRoms[key].Header10.TVSystem
 
@@ -1042,6 +1047,7 @@ func UnmarshalXMLToROMMap(xmlPayload string, enableInes bool, preserveTrainer bo
 			tempRom.Header10.FourScreen = xmlStruct.XMLROMs[index].Header10.FourScreen.Value
 			tempRom.Header10.Mapper = xmlStruct.XMLROMs[index].Header10.Mapper.Value
 			tempRom.Header10.VsUnisystem = xmlStruct.XMLROMs[index].Header10.VsUnisystem.Value
+			tempRom.Header10.PlayChoice10 = xmlStruct.XMLROMs[index].Header10.PlayChoice10.Value
 			tempRom.Header10.PRGRAMSize = xmlStruct.XMLROMs[index].Header10.Prgram.Size
 			tempRom.Header10.TVSystem = xmlStruct.XMLROMs[index].Header10.TvSystem.Value
 
