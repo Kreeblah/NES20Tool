@@ -33,10 +33,9 @@ import (
 	"strings"
 )
 
-func MarshalDBFileFromROMMap(nesRoms map[string]*NESTool.NESROM, enableInes bool) (string, error) {
-	dbString := ""
+func MarshalDBFileFromROMMap(nesRoms map[string]*NESTool.NESROM, enableInes bool) ([]byte, error) {
 	tempString := ""
-	romNameMap := make(map[string]string)
+	romNameMap := make(map[string][]byte)
 
 	for index := range nesRoms {
 		if nesRoms[index].Header20 != nil && nesRoms[index].Header20.ConsoleType == 0 {
@@ -73,20 +72,23 @@ func MarshalDBFileFromROMMap(nesRoms map[string]*NESTool.NESROM, enableInes bool
 
 			headerBytes, err := NESTool.EncodeNESROMHeader(nesRoms[index], false, false)
 			if err != nil {
-				return "", err
+				return nil, err
 			}
 			tempString = tempString + strings.ToUpper(hex.EncodeToString(headerBytes))
 
-			tempLength := len(tempString)
+			tempBytes := []byte(tempString)
+
+			tempLength := len(tempBytes)
+
 			if tempLength < 255 {
 				for i := 0; i < (255 - tempLength); i++ {
-					tempString = tempString + "\000"
+					tempBytes = append(tempBytes, byte(0))
 				}
 			}
 
-			tempString = tempString + "\000"
+			tempBytes = append(tempBytes, byte(0))
 
-			romNameMap[tempName] = tempString
+			romNameMap[tempName] = tempBytes
 		} else if enableInes && nesRoms[index].Header10 != nil && nesRoms[index].Header10.VsUnisystem == false {
 			tempName := ""
 
@@ -121,22 +123,27 @@ func MarshalDBFileFromROMMap(nesRoms map[string]*NESTool.NESROM, enableInes bool
 
 			headerBytes, err := NESTool.EncodeNESROMHeader(nesRoms[index], true, false)
 			if err != nil {
-				return "", err
+				return nil, err
 			}
 			tempString = tempString + strings.ToUpper(hex.EncodeToString(headerBytes))
 
-			tempLength := len(tempString)
+			tempBytes := []byte(tempString)
+
+			tempLength := len(tempBytes)
+
 			if tempLength < 255 {
 				for i := 0; i < (255 - tempLength); i++ {
-					tempString = tempString + "\000"
+					tempBytes = append(tempBytes, byte(0))
 				}
 			}
 
-			tempString = tempString + "\000"
+			tempBytes = append(tempBytes, byte(0))
 
-			romNameMap[tempName] = tempString
+			romNameMap[tempName] = tempBytes
 		}
 	}
+
+	returnBytes := make([]byte, 0)
 
 	keys := make([]string, 0, len(romNameMap))
 	for k := range romNameMap {
@@ -146,8 +153,8 @@ func MarshalDBFileFromROMMap(nesRoms map[string]*NESTool.NESROM, enableInes bool
 	sort.Strings(keys)
 
 	for _, k := range keys {
-		dbString = dbString + romNameMap[k]
+		returnBytes = append(returnBytes, romNameMap[k]...)
 	}
 
-	return dbString, nil
+	return returnBytes, nil
 }

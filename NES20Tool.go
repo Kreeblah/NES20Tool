@@ -305,27 +305,34 @@ func main() {
 			}
 		}
 
-		var transformPayload string
+		transformPayloadString := ""
+		transformPayloadBytes := make([]byte, 0)
 
 		if *formatTransformType == "default" {
-			transformPayload, err = FileTools.MarshalXMLFromROMMap(romData, archiveData, *romSetEnableV1, *romSetPreserveTrainers, *romSetOrganization)
+			transformPayloadString, err = FileTools.MarshalXMLFromROMMap(romData, archiveData, *romSetEnableV1, *romSetPreserveTrainers, *romSetOrganization)
 			if err != nil {
 				panic(err)
 			}
 		} else if *formatTransformType == "nes20db" {
-			transformPayload, err = FileTools.MarshalNES20DBXMLFromROMMap(romData, *romSetOrganization)
+			transformPayloadString, err = FileTools.MarshalNES20DBXMLFromROMMap(romData, *romSetOrganization)
 			if err != nil {
 				panic(err)
 			}
 		} else if *formatTransformType == "sanni" {
-			transformPayload, err = FileTools.MarshalDBFileFromROMMap(romData, *romSetEnableV1)
+			transformPayloadBytes, err = FileTools.MarshalDBFileFromROMMap(romData, *romSetEnableV1)
 			if err != nil {
 				panic(err)
 			}
 		}
 
 		println("Writing transformed payload to: " + *formatTransformDestination)
-		err = FileTools.WriteStringToFile(transformPayload, *formatTransformDestination)
+		if len(transformPayloadString) > 0 {
+			err = FileTools.WriteStringToFile(transformPayloadString, *formatTransformDestination)
+		} else if len(transformPayloadBytes) > 0 {
+			err = FileTools.WriteBytesToFile(transformPayloadBytes, *formatTransformDestination)
+		} else {
+			os.Exit(1)
+		}
 		if err != nil {
 			panic(err)
 		}

@@ -634,3 +634,7 @@ func WriteFDSArchive(archiveModel *FDSTool.FDSArchiveFile, writeFDSHeader bool, 
 func WriteStringToFile(dataString string, filePath string) error {
 	return ioutil.WriteFile(filePath, []byte(dataString), 0644)
 }
+
+func WriteBytesToFile(dataBytes []byte, filePath string) error {
+	return ioutil.WriteFile(filePath, dataBytes, 0644)
+}
