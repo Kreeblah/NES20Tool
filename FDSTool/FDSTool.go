@@ -35,7 +35,7 @@
 package FDSTool
 
 import (
-	"NES20Tool/NESTool"
+	"github.com/Kreeblah/NES20Tool/NESTool"
 	"bytes"
 	"crypto/md5"
 	"crypto/sha1"

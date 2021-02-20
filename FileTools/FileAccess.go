@@ -20,10 +20,10 @@
 package FileTools
 
 import (
-	"NES20Tool/FDSTool"
-	"NES20Tool/NESTool"
-	"NES20Tool/ProcessingTools"
-	"NES20Tool/UNIFTool"
+	"github.com/Kreeblah/NES20Tool/FDSTool"
+	"github.com/Kreeblah/NES20Tool/NESTool"
+	"github.com/Kreeblah/NES20Tool/ProcessingTools"
+	"github.com/Kreeblah/NES20Tool/UNIFTool"
 	"bufio"
 	"encoding/binary"
 	"encoding/hex"

@@ -20,10 +20,10 @@
 package main
 
 import (
-	"NES20Tool/FDSTool"
-	"NES20Tool/FileTools"
-	"NES20Tool/NESTool"
-	"NES20Tool/ProcessingTools"
+	"github.com/Kreeblah/NES20Tool/FDSTool"
+	"github.com/Kreeblah/NES20Tool/FileTools"
+	"github.com/Kreeblah/NES20Tool/NESTool"
+	"github.com/Kreeblah/NES20Tool/ProcessingTools"
 	"flag"
 	"fmt"
 	"io/ioutil"

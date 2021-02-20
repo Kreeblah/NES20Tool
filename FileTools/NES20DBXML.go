@@ -24,7 +24,7 @@
 package FileTools
 
 import (
-	"NES20Tool/NESTool"
+	"github.com/Kreeblah/NES20Tool/NESTool"
 	"encoding/binary"
 	"encoding/hex"
 	"encoding/xml"

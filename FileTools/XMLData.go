@@ -20,8 +20,8 @@
 package FileTools
 
 import (
-	"NES20Tool/FDSTool"
-	"NES20Tool/NESTool"
+	"github.com/Kreeblah/NES20Tool/FDSTool"
+	"github.com/Kreeblah/NES20Tool/NESTool"
 	"encoding/binary"
 	"encoding/hex"
 	"encoding/xml"

@@ -23,7 +23,7 @@
 package UNIFTool
 
 import (
-	"NES20Tool/NESTool"
+	"github.com/Kreeblah/NES20Tool/NESTool"
 	"bytes"
 	"encoding/binary"
 	"hash/crc32"
