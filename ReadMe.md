@@ -53,3 +53,9 @@ To use this tool, compile it for your favorite OS and then run it with the follo
         The path to an XML file to use for the operation.
     -xml-format string
         The format of the imported or exported XML file. {default|nes20db} (default "default")
+
+Compilation
+-----------
+
+    $ go get github.com/Kreeblah/NES20Tool
+    $ go build github.com/Kreeblah/NES20Tool
