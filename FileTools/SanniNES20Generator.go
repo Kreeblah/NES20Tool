@@ -24,9 +24,9 @@
 package FileTools
 
 import (
-	"github.com/Kreeblah/NES20Tool/NESTool"
 	"encoding/binary"
 	"encoding/hex"
+	"github.com/Kreeblah/NES20Tool/NESTool"
 	"os"
 	"sort"
 	"strconv"

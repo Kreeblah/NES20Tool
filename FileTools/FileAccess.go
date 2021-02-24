@@ -1,5 +1,5 @@
 /*
-   Copyright 2020, Christopher Gelatt
+   Copyright 2021, Christopher Gelatt
 
    This file is part of NESTool.
 
@@ -20,14 +20,14 @@
 package FileTools
 
 import (
-	"github.com/Kreeblah/NES20Tool/FDSTool"
-	"github.com/Kreeblah/NES20Tool/NESTool"
-	"github.com/Kreeblah/NES20Tool/ProcessingTools"
-	"github.com/Kreeblah/NES20Tool/UNIFTool"
 	"bufio"
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
+	"github.com/Kreeblah/NES20Tool/FDSTool"
+	"github.com/Kreeblah/NES20Tool/NESTool"
+	"github.com/Kreeblah/NES20Tool/ProcessingTools"
+	"github.com/Kreeblah/NES20Tool/UNIFTool"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -97,7 +97,7 @@ func LoadROM(fileName string, enableInes bool, preserveTrainer bool, basePath st
 
 	println("Loading ROM: " + fileName)
 
-	if printChecksums {
+	if printChecksums && decodedRom != nil {
 		println("ROM Size  : " + strconv.FormatUint(decodedRom.Size, 10))
 		crc32Bytes := make([]byte, 4)
 		binary.BigEndian.PutUint32(crc32Bytes, decodedRom.CRC32)
@@ -183,7 +183,7 @@ func LoadUNIF(fileName string, basePath string, printChecksums bool) (*NESTool.N
 
 	println("Loading ROM: " + fileName)
 
-	if printChecksums {
+	if printChecksums && decodedRom != nil {
 		println("ROM Size  : " + strconv.FormatUint(decodedRom.Size, 10))
 		crc32Bytes := make([]byte, 4)
 		binary.BigEndian.PutUint32(crc32Bytes, decodedRom.CRC32)
@@ -267,7 +267,7 @@ func LoadFDSArchive(fileName string, basePath string, generateChecksums bool, pr
 
 	println("Loading FDS archive: " + fileName)
 
-	if printChecksums {
+	if printChecksums && decodedArchive != nil {
 		crc32Bytes := make([]byte, 4)
 		binary.BigEndian.PutUint32(crc32Bytes, decodedArchive.CRC32)
 		println("CRC32 : " + strings.ToUpper(hex.EncodeToString(crc32Bytes)))

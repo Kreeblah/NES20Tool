@@ -1,5 +1,5 @@
 /*
-   Copyright 2020, Christopher Gelatt
+   Copyright 2021, Christopher Gelatt
 
    This file is part of NESTool.
 
@@ -20,12 +20,12 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"github.com/Kreeblah/NES20Tool/FDSTool"
 	"github.com/Kreeblah/NES20Tool/FileTools"
 	"github.com/Kreeblah/NES20Tool/NESTool"
 	"github.com/Kreeblah/NES20Tool/ProcessingTools"
-	"flag"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"

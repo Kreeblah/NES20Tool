@@ -1,5 +1,5 @@
 /*
-   Copyright 2020, Christopher Gelatt
+   Copyright 2021, Christopher Gelatt
 
    This file is part of NESTool.
 
@@ -23,10 +23,11 @@
 package UNIFTool
 
 import (
-	"github.com/Kreeblah/NES20Tool/NESTool"
 	"bytes"
 	"encoding/binary"
+	"github.com/Kreeblah/NES20Tool/NESTool"
 	"hash/crc32"
+	"strconv"
 )
 
 var (
@@ -41,22 +42,29 @@ func DecodeUNIFROM(inputFile []byte) (*NESTool.NESROM, error) {
 		return nil, &NESTool.NESROMError{Text: "Not a valid UNIF ROM."}
 	}
 
+	// "DWORD" (32-bit little endian unsigned integer) chunk length
+	unifVersion := binary.LittleEndian.Uint32(inputFile[4:8])
+
 	unifChunks, err := GetUNIFChunks(inputFile)
 	if err != nil {
 		return nil, err
 	}
 
-	prgRomData, err := getRomData(unifChunks, "PRG", "PCK")
+	prgRomData, err := getRomData(unifChunks, unifVersion, "PRG", "PCK")
 	if err != nil {
 		return nil, err
 	}
 
-	chrRomData, err := getRomData(unifChunks, "CHR", "CCK")
+	chrRomData, err := getRomData(unifChunks, unifVersion, "CHR", "CCK")
 	if err != nil {
 		return nil, err
 	}
 
 	tempRom := &NESTool.NESROM{}
+
+	if IsValidChunkNameForUnifVersion(unifVersion, "NAME") && unifChunks["NAME"] != nil {
+		tempRom.Name = string(unifChunks["NAME"][0 : len(unifChunks["NAME"])-1])
+	}
 
 	tempRom.PRGROMData = prgRomData
 	tempRom.CHRROMData = chrRomData
@@ -131,7 +139,7 @@ func getNextUNIFChunk(inputData []byte, position uint64) (string, []byte, uint64
 }
 
 // Build a PRG or CHR ROM from a map of UNIF chunks
-func getRomData(unifChunks map[string][]byte, romType string, checksumType string) ([]byte, error) {
+func getRomData(unifChunks map[string][]byte, unifVersion uint32, romType string, checksumType string) ([]byte, error) {
 	romData := make([]byte, 0)
 
 	// PRG and CHR chunks are named PRG0, PRG1, etc. through PRGF.
@@ -141,197 +149,128 @@ func getRomData(unifChunks map[string][]byte, romType string, checksumType strin
 	// concatenation of them all in numerical order by chunk name.
 	// Additionally, checksums are not required to be included, so
 	// we can only hard fail if one exists for a chunk and is a mismatch.
-	if unifChunks[romType+"0"] != nil {
-		if unifChunks[checksumType+"0"] != nil {
-			calculatedCrc32 := crc32.ChecksumIEEE(unifChunks[romType+"0"])
-			referenceCrc32 := binary.LittleEndian.Uint32(unifChunks[checksumType+"0"])
+	for i := 0; i < 16; i++ {
+		chunkStr := strconv.FormatInt(int64(unifVersion), 16)
+		if IsValidChunkNameForUnifVersion(unifVersion, romType+chunkStr) && unifChunks[romType+chunkStr] != nil {
+			if IsValidChunkNameForUnifVersion(unifVersion, checksumType+chunkStr) && unifChunks[checksumType+chunkStr] != nil {
+				calculatedCrc32 := crc32.ChecksumIEEE(unifChunks[romType+chunkStr])
+				referenceCrc32 := binary.LittleEndian.Uint32(unifChunks[checksumType+chunkStr])
 
-			if calculatedCrc32 != referenceCrc32 {
-				return nil, &NESTool.NESROMError{Text: "Checksum mismatch for chunk " + romType + "0"}
+				if calculatedCrc32 != referenceCrc32 {
+					return nil, &NESTool.NESROMError{Text: "Checksum mismatch for chunk " + romType + chunkStr}
+				}
 			}
+			romData = append(romData, unifChunks[romType+chunkStr]...)
 		}
-		romData = append(romData, unifChunks[romType+"0"]...)
-	}
-
-	if unifChunks[romType+"1"] != nil {
-		if unifChunks[checksumType+"1"] != nil {
-			calculatedCrc32 := crc32.ChecksumIEEE(unifChunks[romType+"1"])
-			referenceCrc32 := binary.LittleEndian.Uint32(unifChunks[checksumType+"1"])
-
-			if calculatedCrc32 != referenceCrc32 {
-				return nil, &NESTool.NESROMError{Text: "Checksum mismatch for chunk " + romType + "1"}
-			}
-		}
-		romData = append(romData, unifChunks[romType+"1"]...)
-	}
-
-	if unifChunks[romType+"2"] != nil {
-		if unifChunks[checksumType+"2"] != nil {
-			calculatedCrc32 := crc32.ChecksumIEEE(unifChunks[romType+"2"])
-			referenceCrc32 := binary.LittleEndian.Uint32(unifChunks[checksumType+"2"])
-
-			if calculatedCrc32 != referenceCrc32 {
-				return nil, &NESTool.NESROMError{Text: "Checksum mismatch for chunk " + romType + "2"}
-			}
-		}
-		romData = append(romData, unifChunks[romType+"2"]...)
-	}
-
-	if unifChunks[romType+"3"] != nil {
-		if unifChunks[checksumType+"3"] != nil {
-			calculatedCrc32 := crc32.ChecksumIEEE(unifChunks[romType+"3"])
-			referenceCrc32 := binary.LittleEndian.Uint32(unifChunks[checksumType+"3"])
-
-			if calculatedCrc32 != referenceCrc32 {
-				return nil, &NESTool.NESROMError{Text: "Checksum mismatch for chunk " + romType + "3"}
-			}
-		}
-		romData = append(romData, unifChunks[romType+"3"]...)
-	}
-
-	if unifChunks[romType+"4"] != nil {
-		if unifChunks[checksumType+"4"] != nil {
-			calculatedCrc32 := crc32.ChecksumIEEE(unifChunks[romType+"4"])
-			referenceCrc32 := binary.LittleEndian.Uint32(unifChunks[checksumType+"4"])
-
-			if calculatedCrc32 != referenceCrc32 {
-				return nil, &NESTool.NESROMError{Text: "Checksum mismatch for chunk " + romType + "4"}
-			}
-		}
-		romData = append(romData, unifChunks[romType+"4"]...)
-	}
-
-	if unifChunks[romType+"5"] != nil {
-		if unifChunks[checksumType+"5"] != nil {
-			calculatedCrc32 := crc32.ChecksumIEEE(unifChunks[romType+"5"])
-			referenceCrc32 := binary.LittleEndian.Uint32(unifChunks[checksumType+"5"])
-
-			if calculatedCrc32 != referenceCrc32 {
-				return nil, &NESTool.NESROMError{Text: "Checksum mismatch for chunk " + romType + "5"}
-			}
-		}
-		romData = append(romData, unifChunks[romType+"5"]...)
-	}
-
-	if unifChunks[romType+"6"] != nil {
-		if unifChunks[checksumType+"6"] != nil {
-			calculatedCrc32 := crc32.ChecksumIEEE(unifChunks[romType+"6"])
-			referenceCrc32 := binary.LittleEndian.Uint32(unifChunks[checksumType+"6"])
-
-			if calculatedCrc32 != referenceCrc32 {
-				return nil, &NESTool.NESROMError{Text: "Checksum mismatch for chunk " + romType + "6"}
-			}
-		}
-		romData = append(romData, unifChunks[romType+"6"]...)
-	}
-
-	if unifChunks[romType+"7"] != nil {
-		if unifChunks[checksumType+"7"] != nil {
-			calculatedCrc32 := crc32.ChecksumIEEE(unifChunks[romType+"7"])
-			referenceCrc32 := binary.LittleEndian.Uint32(unifChunks[checksumType+"7"])
-
-			if calculatedCrc32 != referenceCrc32 {
-				return nil, &NESTool.NESROMError{Text: "Checksum mismatch for chunk " + romType + "7"}
-			}
-		}
-		romData = append(romData, unifChunks[romType+"7"]...)
-	}
-
-	if unifChunks[romType+"8"] != nil {
-		if unifChunks[checksumType+"8"] != nil {
-			calculatedCrc32 := crc32.ChecksumIEEE(unifChunks[romType+"8"])
-			referenceCrc32 := binary.LittleEndian.Uint32(unifChunks[checksumType+"8"])
-
-			if calculatedCrc32 != referenceCrc32 {
-				return nil, &NESTool.NESROMError{Text: "Checksum mismatch for chunk " + romType + "8"}
-			}
-		}
-		romData = append(romData, unifChunks[romType+"8"]...)
-	}
-
-	if unifChunks[romType+"9"] != nil {
-		if unifChunks[checksumType+"9"] != nil {
-			calculatedCrc32 := crc32.ChecksumIEEE(unifChunks[romType+"9"])
-			referenceCrc32 := binary.LittleEndian.Uint32(unifChunks[checksumType+"9"])
-
-			if calculatedCrc32 != referenceCrc32 {
-				return nil, &NESTool.NESROMError{Text: "Checksum mismatch for chunk " + romType + "9"}
-			}
-		}
-		romData = append(romData, unifChunks[romType+"9"]...)
-	}
-
-	if unifChunks[romType+"A"] != nil {
-		if unifChunks[checksumType+"A"] != nil {
-			calculatedCrc32 := crc32.ChecksumIEEE(unifChunks[romType+"A"])
-			referenceCrc32 := binary.LittleEndian.Uint32(unifChunks[checksumType+"A"])
-
-			if calculatedCrc32 != referenceCrc32 {
-				return nil, &NESTool.NESROMError{Text: "Checksum mismatch for chunk " + romType + "A"}
-			}
-		}
-		romData = append(romData, unifChunks[romType+"A"]...)
-	}
-
-	if unifChunks[romType+"B"] != nil {
-		if unifChunks[checksumType+"B"] != nil {
-			calculatedCrc32 := crc32.ChecksumIEEE(unifChunks[romType+"B"])
-			referenceCrc32 := binary.LittleEndian.Uint32(unifChunks[checksumType+"B"])
-
-			if calculatedCrc32 != referenceCrc32 {
-				return nil, &NESTool.NESROMError{Text: "Checksum mismatch for chunk " + romType + "B"}
-			}
-		}
-		romData = append(romData, unifChunks[romType+"B"]...)
-	}
-
-	if unifChunks[romType+"C"] != nil {
-		if unifChunks[checksumType+"C"] != nil {
-			calculatedCrc32 := crc32.ChecksumIEEE(unifChunks[romType+"C"])
-			referenceCrc32 := binary.LittleEndian.Uint32(unifChunks[checksumType+"C"])
-
-			if calculatedCrc32 != referenceCrc32 {
-				return nil, &NESTool.NESROMError{Text: "Checksum mismatch for chunk " + romType + "C"}
-			}
-		}
-		romData = append(romData, unifChunks[romType+"C"]...)
-	}
-
-	if unifChunks[romType+"D"] != nil {
-		if unifChunks[checksumType+"D"] != nil {
-			calculatedCrc32 := crc32.ChecksumIEEE(unifChunks[romType+"D"])
-			referenceCrc32 := binary.LittleEndian.Uint32(unifChunks[checksumType+"D"])
-
-			if calculatedCrc32 != referenceCrc32 {
-				return nil, &NESTool.NESROMError{Text: "Checksum mismatch for chunk " + romType + "D"}
-			}
-		}
-		romData = append(romData, unifChunks[romType+"D"]...)
-	}
-
-	if unifChunks[romType+"E"] != nil {
-		if unifChunks[checksumType+"E"] != nil {
-			calculatedCrc32 := crc32.ChecksumIEEE(unifChunks[romType+"E"])
-			referenceCrc32 := binary.LittleEndian.Uint32(unifChunks[checksumType+"E"])
-
-			if calculatedCrc32 != referenceCrc32 {
-				return nil, &NESTool.NESROMError{Text: "Checksum mismatch for chunk " + romType + "E"}
-			}
-		}
-		romData = append(romData, unifChunks[romType+"E"]...)
-	}
-
-	if unifChunks[romType+"F"] != nil {
-		if unifChunks[checksumType+"F"] != nil {
-			calculatedCrc32 := crc32.ChecksumIEEE(unifChunks[romType+"F"])
-			referenceCrc32 := binary.LittleEndian.Uint32(unifChunks[checksumType+"F"])
-
-			if calculatedCrc32 != referenceCrc32 {
-				return nil, &NESTool.NESROMError{Text: "Checksum mismatch for chunk " + romType + "F"}
-			}
-		}
-		romData = append(romData, unifChunks[romType+"F"]...)
 	}
 
 	return romData, nil
+}
+
+func IsValidChunkNameForUnifVersion(unifVersion uint32, chunkName string) bool {
+	chunkNames := GetValidChunkNamesForUnifVersion(unifVersion)
+
+	for _, testChunkName := range chunkNames {
+		if testChunkName == chunkName {
+			return true
+		}
+	}
+
+	return false
+}
+
+func GetValidChunkNamesForUnifVersion(unifVersion uint32) []string {
+	chunkNames := make([]string, 0)
+	if unifVersion == 0 {
+		return chunkNames
+	}
+
+	if unifVersion >= 1 {
+		chunkNames = append(chunkNames, "MAPR")
+		chunkNames = append(chunkNames, "READ")
+		chunkNames = append(chunkNames, "NAME")
+	}
+
+	if unifVersion >= 2 {
+		chunkNames = append(chunkNames, "DINF")
+	}
+
+	if unifVersion >= 4 {
+		chunkNames = append(chunkNames, "PRG0")
+		chunkNames = append(chunkNames, "PRG1")
+		chunkNames = append(chunkNames, "PRG2")
+		chunkNames = append(chunkNames, "PRG3")
+		chunkNames = append(chunkNames, "PRG4")
+		chunkNames = append(chunkNames, "PRG5")
+		chunkNames = append(chunkNames, "PRG6")
+		chunkNames = append(chunkNames, "PRG7")
+		chunkNames = append(chunkNames, "PRG8")
+		chunkNames = append(chunkNames, "PRG9")
+		chunkNames = append(chunkNames, "PRGA")
+		chunkNames = append(chunkNames, "PRGB")
+		chunkNames = append(chunkNames, "PRGC")
+		chunkNames = append(chunkNames, "PRGD")
+		chunkNames = append(chunkNames, "PRGE")
+		chunkNames = append(chunkNames, "PRGF")
+		chunkNames = append(chunkNames, "CHR0")
+		chunkNames = append(chunkNames, "CHR1")
+		chunkNames = append(chunkNames, "CHR2")
+		chunkNames = append(chunkNames, "CHR3")
+		chunkNames = append(chunkNames, "CHR4")
+		chunkNames = append(chunkNames, "CHR5")
+		chunkNames = append(chunkNames, "CHR6")
+		chunkNames = append(chunkNames, "CHR7")
+		chunkNames = append(chunkNames, "CHR8")
+		chunkNames = append(chunkNames, "CHR9")
+		chunkNames = append(chunkNames, "CHRA")
+		chunkNames = append(chunkNames, "CHRB")
+		chunkNames = append(chunkNames, "CHRC")
+		chunkNames = append(chunkNames, "CHRD")
+		chunkNames = append(chunkNames, "CHRE")
+		chunkNames = append(chunkNames, "CHRF")
+	}
+
+	if unifVersion >= 5 {
+		chunkNames = append(chunkNames, "PCK0")
+		chunkNames = append(chunkNames, "PCK1")
+		chunkNames = append(chunkNames, "PCK2")
+		chunkNames = append(chunkNames, "PCK3")
+		chunkNames = append(chunkNames, "PCK4")
+		chunkNames = append(chunkNames, "PCK5")
+		chunkNames = append(chunkNames, "PCK6")
+		chunkNames = append(chunkNames, "PCK7")
+		chunkNames = append(chunkNames, "PCK8")
+		chunkNames = append(chunkNames, "PCK9")
+		chunkNames = append(chunkNames, "PCKA")
+		chunkNames = append(chunkNames, "PCKB")
+		chunkNames = append(chunkNames, "PCKC")
+		chunkNames = append(chunkNames, "PCKD")
+		chunkNames = append(chunkNames, "PCKE")
+		chunkNames = append(chunkNames, "PCKF")
+		chunkNames = append(chunkNames, "CCK0")
+		chunkNames = append(chunkNames, "CCK1")
+		chunkNames = append(chunkNames, "CCK2")
+		chunkNames = append(chunkNames, "CCK3")
+		chunkNames = append(chunkNames, "CCK4")
+		chunkNames = append(chunkNames, "CCK5")
+		chunkNames = append(chunkNames, "CCK6")
+		chunkNames = append(chunkNames, "CCK7")
+		chunkNames = append(chunkNames, "CCK8")
+		chunkNames = append(chunkNames, "CCK9")
+		chunkNames = append(chunkNames, "CCKA")
+		chunkNames = append(chunkNames, "CCKB")
+		chunkNames = append(chunkNames, "CCKC")
+		chunkNames = append(chunkNames, "CCKD")
+		chunkNames = append(chunkNames, "CCKE")
+		chunkNames = append(chunkNames, "CCKF")
+		chunkNames = append(chunkNames, "BATR")
+		chunkNames = append(chunkNames, "VROR")
+		chunkNames = append(chunkNames, "MIRR")
+	}
+
+	if unifVersion >= 7 {
+		chunkNames = append(chunkNames, "CTRL")
+	}
+
+	return chunkNames
 }

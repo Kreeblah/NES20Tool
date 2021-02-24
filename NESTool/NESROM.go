@@ -1,5 +1,5 @@
 /*
-   Copyright 2020, Christopher Gelatt
+   Copyright 2021, Christopher Gelatt
 
    This file is part of NESTool.
 
