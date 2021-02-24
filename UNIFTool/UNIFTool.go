@@ -42,7 +42,7 @@ func DecodeUNIFROM(inputFile []byte) (*NESTool.NESROM, error) {
 		return nil, &NESTool.NESROMError{Text: "Not a valid UNIF ROM."}
 	}
 
-	// "DWORD" (32-bit little endian unsigned integer) chunk length
+	// "DWORD" (32-bit little endian unsigned integer) version number
 	unifVersion := binary.LittleEndian.Uint32(inputFile[4:8])
 
 	unifChunks, err := GetUNIFChunks(inputFile)
