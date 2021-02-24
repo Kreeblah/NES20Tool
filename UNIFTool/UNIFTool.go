@@ -28,6 +28,7 @@ import (
 	"github.com/Kreeblah/NES20Tool/NESTool"
 	"hash/crc32"
 	"strconv"
+	"strings"
 )
 
 var (
@@ -37,15 +38,12 @@ var (
 // Read a byte slice and copy the PRG, CHR, and base ROMs
 // to an NESROM struct, then hash them.
 func DecodeUNIFROM(inputFile []byte) (*NESTool.NESROM, error) {
-	// UNIF header
-	if bytes.Compare(inputFile[0:4], []byte(UNIF_MAGIC)) != 0 {
-		return nil, &NESTool.NESROMError{Text: "Not a valid UNIF ROM."}
+	unifChunks, err := GetUNIFChunks(inputFile)
+	if err != nil {
+		return nil, err
 	}
 
-	// "DWORD" (32-bit little endian unsigned integer) version number
-	unifVersion := binary.LittleEndian.Uint32(inputFile[4:8])
-
-	unifChunks, err := GetUNIFChunks(inputFile)
+	unifVersion, err := GetUNIFVersion(inputFile)
 	if err != nil {
 		return nil, err
 	}
@@ -84,11 +82,32 @@ func DecodeUNIFROM(inputFile []byte) (*NESTool.NESROM, error) {
 	return tempRom, nil
 }
 
-// Get each of the UNIF chunks in the file
-func GetUNIFChunks(inputData []byte) (map[string][]byte, error) {
+// Validate UNIF header
+func IsValidUNIFROM(inputData []byte) (bool, error) {
 	// UNIF header
 	if bytes.Compare(inputData[0:4], []byte(UNIF_MAGIC)) != 0 {
-		return nil, &NESTool.NESROMError{Text: "Not a valid UNIF ROM."}
+		return false, &NESTool.NESROMError{Text: "Not a valid UNIF ROM."}
+	}
+
+	return true, nil
+}
+
+// Get the UNIF standard version declared by the ROM
+func GetUNIFVersion(inputData []byte) (uint32, error) {
+	_, err := IsValidUNIFROM(inputData)
+	if err != nil {
+		return 0, err
+	}
+
+	// "DWORD" (32-bit little endian unsigned integer) version number
+	return binary.LittleEndian.Uint32(inputData[4:8]), nil
+}
+
+// Get each of the UNIF chunks in the file
+func GetUNIFChunks(inputData []byte) (map[string][]byte, error) {
+	_, err := IsValidUNIFROM(inputData)
+	if err != nil {
+		return nil, err
 	}
 
 	unifChunks := make(map[string][]byte, 0)
@@ -150,7 +169,7 @@ func getRomData(unifChunks map[string][]byte, unifVersion uint32, romType string
 	// Additionally, checksums are not required to be included, so
 	// we can only hard fail if one exists for a chunk and is a mismatch.
 	for i := 0; i < 16; i++ {
-		chunkStr := strconv.FormatInt(int64(unifVersion), 16)
+		chunkStr := strings.ToUpper(strconv.FormatInt(int64(i), 16))
 		if IsValidChunkNameForUnifVersion(unifVersion, romType+chunkStr) && unifChunks[romType+chunkStr] != nil {
 			if IsValidChunkNameForUnifVersion(unifVersion, checksumType+chunkStr) && unifChunks[checksumType+chunkStr] != nil {
 				calculatedCrc32 := crc32.ChecksumIEEE(unifChunks[romType+chunkStr])
