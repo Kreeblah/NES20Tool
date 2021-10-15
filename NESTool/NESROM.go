@@ -553,10 +553,15 @@ func DecodeNESROM(inputFile []byte, enableInes bool, preserveTrainer bool, relat
 
 		if !preserveTrainer {
 			header20Data.Trainer = false
+			header20Data.TrainerCalculatedSize = 0
 		} else {
 			header20Data.Trainer = (inputFile[6] & 0b00000100) == 0b00000100
 
-			header20Data.TrainerCalculatedSize = 512
+			if header20Data.Trainer {
+				header20Data.TrainerCalculatedSize = 512
+			} else {
+				header20Data.TrainerCalculatedSize = 0
+			}
 		}
 
 		header20Data.FourScreen = (inputFile[6] & 0b00001000) == 0b00001000
@@ -613,10 +618,15 @@ func DecodeNESROM(inputFile []byte, enableInes bool, preserveTrainer bool, relat
 
 		if !preserveTrainer {
 			header10Data.Trainer = false
+			header10Data.TrainerCalculatedSize = 0
 		} else {
 			header10Data.Trainer = (inputFile[6] & 0b00000100) == 0b00000100
 
-			header10Data.TrainerCalculatedSize = 512
+			if header10Data.Trainer {
+				header10Data.TrainerCalculatedSize = 512
+			} else {
+				header10Data.TrainerCalculatedSize = 0
+			}
 		}
 
 		header10Data.FourScreen = (inputFile[6] & 0b00001000) == 0b00001000
