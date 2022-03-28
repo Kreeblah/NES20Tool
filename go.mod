@@ -1,3 +1,3 @@
-module github.com/Kreeblah/NES20Tool
+module NES20Tool
 
 go 1.16
