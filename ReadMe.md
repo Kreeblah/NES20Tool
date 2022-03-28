@@ -57,5 +57,6 @@ To use this tool, compile it for your favorite OS and then run it with the follo
 Compilation
 -----------
 
-    $ go get github.com/Kreeblah/NES20Tool
-    $ go build github.com/Kreeblah/NES20Tool
+Clone the repository, switch to the directory you checked out, then run:
+
+    $ go build
