@@ -682,7 +682,7 @@ func EncodeNESROM(romModel *NESROM, enableInes bool, truncateRom bool, preserveT
 		}
 	}
 
-	if !preserveTrainer || (!romModel.Header20.Trainer && !romModel.Header10.Trainer) || len(romModel.TrainerData) != 512 {
+	if !preserveTrainer || (romModel.Header20 != nil && !romModel.Header20.Trainer) || (romModel.Header10 != nil && !romModel.Header10.Trainer) || (romModel.TrainerData != nil && len(romModel.TrainerData) != 512) {
 		romBytes = append(romBytes, rawRomBytes...)
 	} else {
 		romBytes = append(romBytes, romModel.TrainerData...)
