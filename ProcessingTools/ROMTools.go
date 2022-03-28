@@ -1,5 +1,5 @@
 /*
-   Copyright 2021, Christopher Gelatt
+   Copyright 2021-2022, Christopher Gelatt
 
    This file is part of NESTool.
 
@@ -20,11 +20,11 @@
 package ProcessingTools
 
 import (
+	"NES20Tool/FDSTool"
+	"NES20Tool/NESTool"
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
-	"github.com/Kreeblah/NES20Tool/FDSTool"
-	"github.com/Kreeblah/NES20Tool/NESTool"
 	"strings"
 )
 

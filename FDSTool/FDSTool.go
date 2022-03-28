@@ -1,5 +1,5 @@
 /*
-   Copyright 2021, Christopher Gelatt
+   Copyright 2021-2022, Christopher Gelatt
 
    This file is part of NESTool.
 
@@ -35,12 +35,12 @@
 package FDSTool
 
 import (
+	"NES20Tool/NESTool"
 	"bytes"
 	"crypto/md5"
 	"crypto/sha1"
 	"crypto/sha256"
 	"encoding/binary"
-	"github.com/Kreeblah/NES20Tool/NESTool"
 	"hash/crc32"
 	"sort"
 	"strconv"

@@ -1,5 +1,5 @@
 /*
-   Copyright 2021, Christopher Gelatt
+   Copyright 2021-2022, Christopher Gelatt
 
    This file is part of NESTool.
 
@@ -23,9 +23,9 @@
 package UNIFTool
 
 import (
+	"NES20Tool/NESTool"
 	"bytes"
 	"encoding/binary"
-	"github.com/Kreeblah/NES20Tool/NESTool"
 	"hash/crc32"
 	"strconv"
 	"strings"

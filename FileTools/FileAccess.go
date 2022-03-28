@@ -1,5 +1,5 @@
 /*
-   Copyright 2021, Christopher Gelatt
+   Copyright 2021-2022, Christopher Gelatt
 
    This file is part of NESTool.
 
@@ -20,14 +20,14 @@
 package FileTools
 
 import (
+	"NES20Tool/FDSTool"
+	"NES20Tool/NESTool"
+	"NES20Tool/ProcessingTools"
+	"NES20Tool/UNIFTool"
 	"bufio"
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
-	"github.com/Kreeblah/NES20Tool/FDSTool"
-	"github.com/Kreeblah/NES20Tool/NESTool"
-	"github.com/Kreeblah/NES20Tool/ProcessingTools"
-	"github.com/Kreeblah/NES20Tool/UNIFTool"
 	"io/ioutil"
 	"os"
 	"path/filepath"
