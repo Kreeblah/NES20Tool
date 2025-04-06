@@ -145,8 +145,19 @@ func getNextUNIFChunk(inputData []byte, position uint64) (string, []byte, uint64
 	// Four-byte UTF-8 chunk ID
 	chunkId := string(inputData[tempPosition:(tempPosition + 4)])
 
+	// Workaround for malformed ROMs
+	if chunkId == "\000DIN" {
+		tempPosition = tempPosition + 1
+		chunkId = string(inputData[tempPosition:(tempPosition + 4)])
+	}
+
 	// "DWORD" (32-bit little endian unsigned integer) chunk length
 	chunkLength := uint64(binary.LittleEndian.Uint32(inputData[(tempPosition + 4):(tempPosition + 8)]))
+
+	// Workaround for malformed ROMs
+	if chunkId == "DINF" && chunkLength == 0 {
+		chunkLength = uint64(204)
+	}
 
 	if (tempPosition + 8 + chunkLength) > uint64(len(inputData)) {
 		return "", nil, 0, &NESTool.NESROMError{Text: "Invalid UNIF chunk length."}
@@ -212,6 +223,8 @@ func GetValidChunkNamesForUnifVersion(unifVersion uint32) []string {
 
 	if unifVersion >= 2 {
 		chunkNames = append(chunkNames, "DINF")
+		// Workaround for malformed ROMs
+		chunkNames = append(chunkNames, "\000DIN")
 	}
 
 	if unifVersion >= 4 {
