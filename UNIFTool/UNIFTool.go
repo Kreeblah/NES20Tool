@@ -137,6 +137,9 @@ func getNextUNIFChunk(inputData []byte, position uint64) (string, []byte, uint64
 
 	tempPosition := position
 
+	// Workaround for malformed ROMs
+	isMalformedROM := false
+
 	// Skip the four-byte UNIF version number and the reserved bytes if at the beginning of the file
 	if bytes.Compare(inputData[position:(position+4)], []byte(UNIF_MAGIC)) == 0 {
 		tempPosition = 32
@@ -148,6 +151,7 @@ func getNextUNIFChunk(inputData []byte, position uint64) (string, []byte, uint64
 	// Workaround for malformed ROMs
 	if chunkId == "\000DIN" {
 		tempPosition = tempPosition + 1
+		isMalformedROM = true
 		chunkId = string(inputData[tempPosition:(tempPosition + 4)])
 	}
 
@@ -155,7 +159,7 @@ func getNextUNIFChunk(inputData []byte, position uint64) (string, []byte, uint64
 	chunkLength := uint64(binary.LittleEndian.Uint32(inputData[(tempPosition + 4):(tempPosition + 8)]))
 
 	// Workaround for malformed ROMs
-	if chunkId == "DINF" && chunkLength == 0 {
+	if isMalformedROM && chunkId == "DINF" && chunkLength == 0 {
 		chunkLength = uint64(204)
 	}
 
@@ -223,6 +227,7 @@ func GetValidChunkNamesForUnifVersion(unifVersion uint32) []string {
 
 	if unifVersion >= 2 {
 		chunkNames = append(chunkNames, "DINF")
+
 		// Workaround for malformed ROMs
 		chunkNames = append(chunkNames, "\000DIN")
 	}
