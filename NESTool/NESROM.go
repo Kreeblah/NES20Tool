@@ -1,5 +1,5 @@
 /*
-   Copyright 2021-2022, Christopher Gelatt
+   Copyright 2021-2025, Christopher Gelatt
 
    This file is part of NESTool.
 
@@ -160,196 +160,293 @@ func (r *NESROMError) Error() string {
 }
 
 func (rom *NESROM) String() string {
-	returnString := ""
+	var returnStringBuilder strings.Builder
 
 	if rom.Header20 != nil {
-		returnString = "ROM Header Version: NES 2.0\n"
+		returnStringBuilder.WriteString("ROM Header Version: NES 2.0\n")
 	} else if rom.Header10 != nil {
-		returnString = "ROM Header Version: iNES\n"
+		returnStringBuilder.WriteString("ROM Header Version: iNES\n")
 	} else {
 		return ""
 	}
 
 	if rom.Name != "" {
-		returnString = returnString + "ROM Name: " + rom.Name + "\n"
+		returnStringBuilder.WriteString("ROM Name: ")
+		returnStringBuilder.WriteString(rom.Name)
+		returnStringBuilder.WriteString("\n")
 	} else if rom.Filename != "" {
-		returnString = returnString + "ROM Filename: " + rom.Filename + "\n"
+		returnStringBuilder.WriteString("ROM Filename: ")
+		returnStringBuilder.WriteString(rom.Filename)
+		returnStringBuilder.WriteString("\n")
 	} else if rom.RelativePath != "" {
-		returnString = returnString + "ROM Relative Path: " + rom.RelativePath + "\n"
+		returnStringBuilder.WriteString("ROM Relative Path: ")
+		returnStringBuilder.WriteString(rom.RelativePath)
+		returnStringBuilder.WriteString("\n")
 	}
 
-	returnString = returnString + "ROM Size: " + strconv.Itoa(int(rom.Size)) + " bytes\n"
+	returnStringBuilder.WriteString("ROM Size: ")
+	returnStringBuilder.WriteString(strconv.Itoa(int(rom.Size)))
+	returnStringBuilder.WriteString(" bytes\n")
 
 	crc32Bytes := make([]byte, 4)
 	binary.BigEndian.PutUint32(crc32Bytes, rom.CRC32)
-	returnString = returnString + "ROM CRC32: " + strings.ToUpper(hex.EncodeToString(crc32Bytes)) + "\n"
+	returnStringBuilder.WriteString("ROM CRC32: ")
+	returnStringBuilder.WriteString(strings.ToUpper(hex.EncodeToString(crc32Bytes)))
+	returnStringBuilder.WriteString("\n")
 
-	returnString = returnString + "ROM MD5: " + strings.ToUpper(hex.EncodeToString(rom.MD5[:])) + "\n"
-	returnString = returnString + "ROM SHA1: " + strings.ToUpper(hex.EncodeToString(rom.SHA1[:])) + "\n"
-	returnString = returnString + "ROM SHA256: " + strings.ToUpper(hex.EncodeToString(rom.SHA256[:])) + "\n"
+	returnStringBuilder.WriteString("ROM MD5: ")
+	returnStringBuilder.WriteString(strings.ToUpper(hex.EncodeToString(rom.MD5[:])))
+	returnStringBuilder.WriteString("\n")
+	returnStringBuilder.WriteString("ROM SHA1: ")
+	returnStringBuilder.WriteString(strings.ToUpper(hex.EncodeToString(rom.SHA1[:])))
+	returnStringBuilder.WriteString("\n")
+	returnStringBuilder.WriteString("ROM SHA256: ")
+	returnStringBuilder.WriteString(strings.ToUpper(hex.EncodeToString(rom.SHA256[:])))
+	returnStringBuilder.WriteString("\n")
 
 	if rom.Header20 != nil {
-		returnString = returnString + "PRG ROM Size: " + strconv.Itoa(int(rom.Header20.PRGROMCalculatedSize)) + " bytes\n"
+		returnStringBuilder.WriteString("PRG ROM Size: ")
+		returnStringBuilder.WriteString(strconv.Itoa(int(rom.Header20.PRGROMCalculatedSize)))
+		returnStringBuilder.WriteString(" bytes\n")
 
 		prgSum16Bytes := make([]byte, 2)
 		binary.BigEndian.PutUint16(prgSum16Bytes, rom.Header20.PRGROMSum16)
-		returnString = returnString + "PRG ROM Sum16: " + strings.ToUpper(hex.EncodeToString(prgSum16Bytes)) + "\n"
+		returnStringBuilder.WriteString("PRG ROM Sum16: ")
+		returnStringBuilder.WriteString(strings.ToUpper(hex.EncodeToString(prgSum16Bytes)))
+		returnStringBuilder.WriteString("\n")
 
 		prgCrc32Bytes := make([]byte, 4)
 		binary.BigEndian.PutUint32(prgCrc32Bytes, rom.Header20.PRGROMCRC32)
-		returnString = returnString + "PRG ROM CRC32: " + strings.ToUpper(hex.EncodeToString(prgCrc32Bytes)) + "\n"
+		returnStringBuilder.WriteString("PRG ROM CRC32: ")
+		returnStringBuilder.WriteString(strings.ToUpper(hex.EncodeToString(prgCrc32Bytes)))
+		returnStringBuilder.WriteString("\n")
 
-		returnString = returnString + "PRG ROM MD5: " + strings.ToUpper(hex.EncodeToString(rom.Header20.PRGROMMD5[:])) + "\n"
-		returnString = returnString + "PRG ROM SHA1: " + strings.ToUpper(hex.EncodeToString(rom.Header20.PRGROMSHA1[:])) + "\n"
-		returnString = returnString + "PRG ROM SHA256: " + strings.ToUpper(hex.EncodeToString(rom.Header20.PRGROMSHA256[:])) + "\n"
+		returnStringBuilder.WriteString("PRG ROM MD5: ")
+		returnStringBuilder.WriteString(strings.ToUpper(hex.EncodeToString(rom.Header20.PRGROMMD5[:])))
+		returnStringBuilder.WriteString("\n")
+		returnStringBuilder.WriteString("PRG ROM SHA1: ")
+		returnStringBuilder.WriteString(strings.ToUpper(hex.EncodeToString(rom.Header20.PRGROMSHA1[:])))
+		returnStringBuilder.WriteString("\n")
+		returnStringBuilder.WriteString("PRG ROM SHA256: ")
+		returnStringBuilder.WriteString(strings.ToUpper(hex.EncodeToString(rom.Header20.PRGROMSHA256[:])))
+		returnStringBuilder.WriteString("\n")
 
-		returnString = returnString + "CHR ROM Size: " + strconv.Itoa(int(rom.Header20.CHRROMCalculatedSize)) + " bytes\n"
+		returnStringBuilder.WriteString("CHR ROM Size: ")
+		returnStringBuilder.WriteString(strconv.Itoa(int(rom.Header20.CHRROMCalculatedSize)))
+		returnStringBuilder.WriteString(" bytes\n")
 
 		if rom.Header20.CHRROMCalculatedSize > 0 {
 			chrSum16Bytes := make([]byte, 2)
 			binary.BigEndian.PutUint16(chrSum16Bytes, rom.Header20.CHRROMSum16)
-			returnString = returnString + "CHR ROM Sum16: " + strings.ToUpper(hex.EncodeToString(chrSum16Bytes)) + "\n"
+			returnStringBuilder.WriteString("CHR ROM Sum16: ")
+			returnStringBuilder.WriteString(strings.ToUpper(hex.EncodeToString(chrSum16Bytes)))
+			returnStringBuilder.WriteString("\n")
 
 			chrCrc32Bytes := make([]byte, 4)
 			binary.BigEndian.PutUint32(chrCrc32Bytes, rom.Header20.CHRROMCRC32)
-			returnString = returnString + "CHR ROM CRC32: " + strings.ToUpper(hex.EncodeToString(chrCrc32Bytes)) + "\n"
+			returnStringBuilder.WriteString("CHR ROM CRC32: ")
+			returnStringBuilder.WriteString(strings.ToUpper(hex.EncodeToString(chrCrc32Bytes)))
+			returnStringBuilder.WriteString("\n")
 
-			returnString = returnString + "CHR ROM MD5: " + strings.ToUpper(hex.EncodeToString(rom.Header20.CHRROMMD5[:])) + "\n"
-			returnString = returnString + "CHR ROM SHA1: " + strings.ToUpper(hex.EncodeToString(rom.Header20.CHRROMSHA1[:])) + "\n"
-			returnString = returnString + "CHR ROM SHA256: " + strings.ToUpper(hex.EncodeToString(rom.Header20.CHRROMSHA256[:])) + "\n"
+			returnStringBuilder.WriteString("CHR ROM MD5: ")
+			returnStringBuilder.WriteString(strings.ToUpper(hex.EncodeToString(rom.Header20.CHRROMMD5[:])))
+			returnStringBuilder.WriteString("\n")
+			returnStringBuilder.WriteString("CHR ROM SHA1: ")
+			returnStringBuilder.WriteString(strings.ToUpper(hex.EncodeToString(rom.Header20.CHRROMSHA1[:])))
+			returnStringBuilder.WriteString("\n")
+			returnStringBuilder.WriteString("CHR ROM SHA256: ")
+			returnStringBuilder.WriteString(strings.ToUpper(hex.EncodeToString(rom.Header20.CHRROMSHA256[:])))
+			returnStringBuilder.WriteString("\n")
 		}
 
 		if !rom.Header20.Trainer {
-			returnString = returnString + "Trainer Size: 0 bytes\n"
+			returnStringBuilder.WriteString("Trainer Size: 0 bytes\n")
 		} else {
-			returnString = returnString + "Trainer Size: " + strconv.Itoa(int(rom.Header20.TrainerCalculatedSize)) + " bytes\n"
+			returnStringBuilder.WriteString("Trainer Size: ")
+			returnStringBuilder.WriteString(strconv.Itoa(int(rom.Header20.TrainerCalculatedSize)))
+			returnStringBuilder.WriteString(" bytes\n")
 
 			if rom.Header20.TrainerCalculatedSize > 0 {
 				trainerSum16Bytes := make([]byte, 2)
 				binary.BigEndian.PutUint16(trainerSum16Bytes, rom.Header20.TrainerSum16)
-				returnString = returnString + "Trainer Sum16: " + strings.ToUpper(hex.EncodeToString(trainerSum16Bytes)) + "\n"
+				returnStringBuilder.WriteString("Trainer Sum16: ")
+				returnStringBuilder.WriteString(strings.ToUpper(hex.EncodeToString(trainerSum16Bytes)))
+				returnStringBuilder.WriteString("\n")
 
 				trainerCrc32Bytes := make([]byte, 4)
 				binary.BigEndian.PutUint32(trainerCrc32Bytes, rom.Header20.TrainerCRC32)
-				returnString = returnString + "Trainer CRC32: " + strings.ToUpper(hex.EncodeToString(trainerCrc32Bytes)) + "\n"
+				returnStringBuilder.WriteString("Trainer CRC32: ")
+				returnStringBuilder.WriteString(strings.ToUpper(hex.EncodeToString(trainerCrc32Bytes)))
+				returnStringBuilder.WriteString("\n")
 
-				returnString = returnString + "Trainer MD5: " + strings.ToUpper(hex.EncodeToString(rom.Header20.TrainerMD5[:])) + "\n"
-				returnString = returnString + "Trainer SHA1: " + strings.ToUpper(hex.EncodeToString(rom.Header20.TrainerSHA1[:])) + "\n"
-				returnString = returnString + "Trainer SHA256: " + strings.ToUpper(hex.EncodeToString(rom.Header20.TrainerSHA256[:])) + "\n"
+				returnStringBuilder.WriteString("Trainer MD5: ")
+				returnStringBuilder.WriteString(strings.ToUpper(hex.EncodeToString(rom.Header20.TrainerMD5[:])))
+				returnStringBuilder.WriteString("\n")
+				returnStringBuilder.WriteString("Trainer SHA1: ")
+				returnStringBuilder.WriteString(strings.ToUpper(hex.EncodeToString(rom.Header20.TrainerSHA1[:])))
+				returnStringBuilder.WriteString("\n")
+				returnStringBuilder.WriteString("Trainer SHA256: ")
+				returnStringBuilder.WriteString(strings.ToUpper(hex.EncodeToString(rom.Header20.TrainerSHA256[:])))
+				returnStringBuilder.WriteString("\n")
 			}
 		}
 
-		returnString = returnString + "Misc ROM Size: " + strconv.Itoa(int(rom.Header20.MiscROMCalculatedSize)) + " bytes\n"
+		returnStringBuilder.WriteString("Misc ROM Size: ")
+		returnStringBuilder.WriteString(strconv.Itoa(int(rom.Header20.MiscROMCalculatedSize)))
+		returnStringBuilder.WriteString(" bytes\n")
 
 		if rom.Header20.MiscROMCalculatedSize > 0 {
-			returnString = returnString + "Number of misc ROMs: " + strconv.Itoa(int(rom.Header20.MiscROMs)) + "\n"
+			returnStringBuilder.WriteString("Number of misc ROMs: ")
+			returnStringBuilder.WriteString(strconv.Itoa(int(rom.Header20.MiscROMs)))
+			returnStringBuilder.WriteString("\n")
 
 			miscRomSum16Bytes := make([]byte, 2)
 			binary.BigEndian.PutUint16(miscRomSum16Bytes, rom.Header20.MiscROMSum16)
-			returnString = returnString + "Misc ROM Sum16: " + strings.ToUpper(hex.EncodeToString(miscRomSum16Bytes)) + "\n"
+			returnStringBuilder.WriteString("Misc ROM Sum16: ")
+			returnStringBuilder.WriteString(strings.ToUpper(hex.EncodeToString(miscRomSum16Bytes)))
+			returnStringBuilder.WriteString("\n")
 
 			miscRomCrc32Bytes := make([]byte, 4)
 			binary.BigEndian.PutUint32(miscRomCrc32Bytes, rom.Header20.MiscROMCRC32)
-			returnString = returnString + "Misc ROM CRC32: " + strings.ToUpper(hex.EncodeToString(miscRomCrc32Bytes)) + "\n"
+			returnStringBuilder.WriteString("Misc ROM CRC32: ")
+			returnStringBuilder.WriteString(strings.ToUpper(hex.EncodeToString(miscRomCrc32Bytes)))
+			returnStringBuilder.WriteString("\n")
 
-			returnString = returnString + "Misc ROM MD5: " + strings.ToUpper(hex.EncodeToString(rom.Header20.MiscROMMD5[:])) + "\n"
-			returnString = returnString + "Misc ROM SHA1: " + strings.ToUpper(hex.EncodeToString(rom.Header20.MiscROMSHA1[:])) + "\n"
-			returnString = returnString + "Misc ROM SHA256: " + strings.ToUpper(hex.EncodeToString(rom.Header20.MiscROMSHA256[:])) + "\n"
+			returnStringBuilder.WriteString("Misc ROM MD5: ")
+			returnStringBuilder.WriteString(strings.ToUpper(hex.EncodeToString(rom.Header20.MiscROMMD5[:])))
+			returnStringBuilder.WriteString("\n")
+			returnStringBuilder.WriteString("Misc ROM SHA1: ")
+			returnStringBuilder.WriteString(strings.ToUpper(hex.EncodeToString(rom.Header20.MiscROMSHA1[:])))
+			returnStringBuilder.WriteString("\n")
+			returnStringBuilder.WriteString("Misc ROM SHA256: ")
+			returnStringBuilder.WriteString(strings.ToUpper(hex.EncodeToString(rom.Header20.MiscROMSHA256[:])))
+			returnStringBuilder.WriteString("\n")
 		}
 
 		if rom.Header20.PRGRAMSize == 0 {
-			returnString = returnString + "PRG RAM Size: 0 bytes\n"
+			returnStringBuilder.WriteString("PRG RAM Size: 0 bytes\n")
 		} else {
 			var prgRamSizeBytes uint64 = 64
 			for i := 0; uint8(i) < rom.Header20.PRGRAMSize; i++ {
 				prgRamSizeBytes = prgRamSizeBytes << 1
 			}
 
-			returnString = returnString + "PRG RAM Size: " + strconv.Itoa(int(prgRamSizeBytes)) + " bytes\n"
+			returnStringBuilder.WriteString("PRG RAM Size: ")
+			returnStringBuilder.WriteString(strconv.Itoa(int(prgRamSizeBytes)))
+			returnStringBuilder.WriteString(" bytes\n")
 		}
 
 		if rom.Header20.PRGNVRAMSize == 0 {
-			returnString = returnString + "PRG NVRAM Size: 0 bytes\n"
+			returnStringBuilder.WriteString("PRG NVRAM Size: 0 bytes\n")
 		} else {
 			var prgNvramSizeBytes uint64 = 64
 			for i := 0; uint8(i) < rom.Header20.PRGNVRAMSize; i++ {
 				prgNvramSizeBytes = prgNvramSizeBytes << 1
 			}
 
-			returnString = returnString + "PRG NVRAM Size: " + strconv.Itoa(int(prgNvramSizeBytes)) + " bytes\n"
+			returnStringBuilder.WriteString("PRG NVRAM Size: ")
+			returnStringBuilder.WriteString(strconv.Itoa(int(prgNvramSizeBytes)))
+			returnStringBuilder.WriteString(" bytes\n")
 		}
 
 		if rom.Header20.CHRRAMSize == 0 {
-			returnString = returnString + "CHR RAM Size: 0 bytes\n"
+			returnStringBuilder.WriteString("CHR RAM Size: 0 bytes\n")
 		} else {
 			var chrRamSizeBytes uint64 = 64
 			for i := 0; uint8(i) < rom.Header20.CHRRAMSize; i++ {
 				chrRamSizeBytes = chrRamSizeBytes << 1
 			}
 
-			returnString = returnString + "CHR RAM Size: " + strconv.Itoa(int(chrRamSizeBytes)) + " bytes\n"
+			returnStringBuilder.WriteString("CHR RAM Size: ")
+			returnStringBuilder.WriteString(strconv.Itoa(int(chrRamSizeBytes)))
+			returnStringBuilder.WriteString(" bytes\n")
 		}
 
 		if rom.Header20.CHRNVRAMSize == 0 {
-			returnString = returnString + "CHR NVRAM Size: 0 bytes\n"
+			returnStringBuilder.WriteString("CHR NVRAM Size: 0 bytes\n")
 		} else {
 			var chrNvramSizeBytes uint64 = 64
 			for i := 0; uint8(i) < rom.Header20.CHRNVRAMSize; i++ {
 				chrNvramSizeBytes = chrNvramSizeBytes << 1
 			}
 
-			returnString = returnString + "CHR NVRAM Size: " + strconv.Itoa(int(chrNvramSizeBytes)) + " bytes\n"
+			returnStringBuilder.WriteString("CHR NVRAM Size: ")
+			returnStringBuilder.WriteString(strconv.Itoa(int(chrNvramSizeBytes)))
+			returnStringBuilder.WriteString(" bytes\n")
 		}
+
+		returnStringBuilder.WriteString("Mirroring Type: ")
 
 		if !rom.Header20.MirroringType {
-			returnString = returnString + "Mirroring Type: Horizontal or mapper-controlled\n"
+			returnStringBuilder.WriteString("Horizontal or mapper-controlled\n")
 		} else {
-			returnString = returnString + "Mirroring Type: Vertical\n"
+			returnStringBuilder.WriteString("Vertical\n")
 		}
+
+		returnStringBuilder.WriteString("Battery Backup: ")
 
 		if !rom.Header20.Battery {
-			returnString = returnString + "Battery Backup: No\n"
+			returnStringBuilder.WriteString("No\n")
 		} else {
-			returnString = returnString + "Battery Backup: Yes\n"
+			returnStringBuilder.WriteString("Yes\n")
 		}
 
+		returnStringBuilder.WriteString("Hard-wired Four Screen Mode: ")
+
 		if !rom.Header20.FourScreen {
-			returnString = returnString + "Hard-wired Four Screen Mode: No\n"
+			returnStringBuilder.WriteString("No\n")
 		} else {
-			returnString = returnString + "Hard-wired Four Screen Mode: Yes\n"
+			returnStringBuilder.WriteString("Yes\n")
 		}
+
+		returnStringBuilder.WriteString("Console Type: ")
 
 		if rom.Header20.ConsoleType < 3 {
 			if rom.Header20.ConsoleType == 0 {
-				returnString = returnString + "Console Type: Regular NES/Famicom/Dendy\n"
+				returnStringBuilder.WriteString("Regular NES/Famicom/Dendy\n")
 			} else if rom.Header20.ConsoleType == 1 {
-				returnString = returnString + "Console Type: Nintendo Vs. System\n"
-				returnString = returnString + "Vs. PPU Type: " + getVsPPUTypeString(rom.Header20.VsPPUType) + "\n"
-				returnString = returnString + "Vs. System Type: " + getVsSystemTypeString(rom.Header20.VsHardwareType) + "\n"
+				returnStringBuilder.WriteString("Nintendo Vs. System\n")
+				returnStringBuilder.WriteString("Vs. PPU Type: ")
+				returnStringBuilder.WriteString(getVsPPUTypeString(rom.Header20.VsPPUType))
+				returnStringBuilder.WriteString("\n")
+				returnStringBuilder.WriteString("Vs. System Type: ")
+				returnStringBuilder.WriteString(getVsSystemTypeString(rom.Header20.VsHardwareType))
+				returnStringBuilder.WriteString("\n")
 			} else {
-				returnString = returnString + "Console Type: Playchoice 10\n"
+				returnStringBuilder.WriteString("Playchoice 10\n")
 			}
 		} else {
-			returnString = returnString + "Console Type: " + getConsoleTypeString(rom.Header20.ExtendedConsoleType) + "\n"
+			returnStringBuilder.WriteString(getConsoleTypeString(rom.Header20.ExtendedConsoleType))
+			returnStringBuilder.WriteString("\n")
 		}
 
-		returnString = returnString + "Mapper: " + strconv.Itoa(int(rom.Header20.Mapper)) + "\n"
-		returnString = returnString + "Submapper: " + strconv.Itoa(int(rom.Header20.SubMapper)) + "\n"
+		returnStringBuilder.WriteString("Mapper: ")
+		returnStringBuilder.WriteString(strconv.Itoa(int(rom.Header20.Mapper)))
+		returnStringBuilder.WriteString("\n")
+		returnStringBuilder.WriteString("Submapper: ")
+		returnStringBuilder.WriteString(strconv.Itoa(int(rom.Header20.SubMapper)))
+		returnStringBuilder.WriteString("\n")
+
+		returnStringBuilder.WriteString("CPU/PPU Timing: ")
 
 		if rom.Header20.CPUPPUTiming == 0 {
-			returnString = returnString + "CPU/PPU Timing: RP2C02 (\"NTSC NES\")\n"
+			returnStringBuilder.WriteString("RP2C02 (\"NTSC NES\")\n")
 		} else if rom.Header20.CPUPPUTiming == 1 {
-			returnString = returnString + "CPU/PPU Timing: RP2C07 (\"Licensed PAL NES\")\n"
+			returnStringBuilder.WriteString("RP2C07 (\"Licensed PAL NES\")\n")
 		} else if rom.Header20.CPUPPUTiming == 2 {
-			returnString = returnString + "CPU/PPU Timing: Multiple-region\n"
+			returnStringBuilder.WriteString("Multiple-region\n")
 		} else if rom.Header20.CPUPPUTiming == 3 {
-			returnString = returnString + "CPU/PPU Timing: UMC 6527P (\"Dendy\")\n"
+			returnStringBuilder.WriteString("UMC 6527P (\"Dendy\")\n")
 		}
 
-		returnString = returnString + "Default Expansion Device: " + getDefaultExpansionDeviceString(rom.Header20.DefaultExpansion) + "\n"
+		returnStringBuilder.WriteString("Default Expansion Device: ")
+		returnStringBuilder.WriteString(getDefaultExpansionDeviceString(rom.Header20.DefaultExpansion))
+		returnStringBuilder.WriteString("\n")
 
 		if rom.HeaderData != nil {
-			returnString = returnString + "ROM Header (Existing):   " + strings.ToUpper(hex.EncodeToString(rom.HeaderData)) + "\n"
+			returnStringBuilder.WriteString("ROM Header (Existing):   ")
+			returnStringBuilder.WriteString(strings.ToUpper(hex.EncodeToString(rom.HeaderData)))
+			returnStringBuilder.WriteString("\n")
 		}
 
 		calculatedHeaderBytes, err := EncodeNESROMHeader(rom, false, true)
@@ -357,98 +454,152 @@ func (rom *NESROM) String() string {
 			return ""
 		}
 
-		returnString = returnString + "ROM Header (Calculated): " + strings.ToUpper(hex.EncodeToString(calculatedHeaderBytes))
+		returnStringBuilder.WriteString("ROM Header (Calculated): ")
+		returnStringBuilder.WriteString(strings.ToUpper(hex.EncodeToString(calculatedHeaderBytes)))
 	} else if rom.Header10 != nil {
-		returnString = returnString + "PRG ROM Size: " + strconv.Itoa(int(rom.Header10.PRGROMCalculatedSize)) + " bytes\n"
+		returnStringBuilder.WriteString("PRG ROM Size: ")
+		returnStringBuilder.WriteString(strconv.Itoa(int(rom.Header10.PRGROMCalculatedSize)))
+		returnStringBuilder.WriteString(" bytes\n")
 
 		prgSum16Bytes := make([]byte, 2)
 		binary.BigEndian.PutUint16(prgSum16Bytes, rom.Header10.PRGROMSum16)
-		returnString = returnString + "PRG ROM Sum16: " + strings.ToUpper(hex.EncodeToString(prgSum16Bytes)) + "\n"
+		returnStringBuilder.WriteString("PRG ROM Sum16: ")
+		returnStringBuilder.WriteString(strings.ToUpper(hex.EncodeToString(prgSum16Bytes)))
+		returnStringBuilder.WriteString("\n")
 
 		prgCrc32Bytes := make([]byte, 4)
 		binary.BigEndian.PutUint32(prgCrc32Bytes, rom.Header10.PRGROMCRC32)
-		returnString = returnString + "PRG ROM CRC32: " + strings.ToUpper(hex.EncodeToString(prgCrc32Bytes)) + "\n"
+		returnStringBuilder.WriteString("PRG ROM CRC32: ")
+		returnStringBuilder.WriteString(strings.ToUpper(hex.EncodeToString(prgCrc32Bytes)))
+		returnStringBuilder.WriteString("\n")
 
-		returnString = returnString + "PRG ROM MD5: " + strings.ToUpper(hex.EncodeToString(rom.Header10.PRGROMMD5[:])) + "\n"
-		returnString = returnString + "PRG ROM SHA1: " + strings.ToUpper(hex.EncodeToString(rom.Header10.PRGROMSHA1[:])) + "\n"
-		returnString = returnString + "PRG ROM SHA256: " + strings.ToUpper(hex.EncodeToString(rom.Header10.PRGROMSHA256[:])) + "\n"
+		returnStringBuilder.WriteString("PRG ROM MD5: ")
+		returnStringBuilder.WriteString(strings.ToUpper(hex.EncodeToString(rom.Header10.PRGROMMD5[:])))
+		returnStringBuilder.WriteString("\n")
+		returnStringBuilder.WriteString("PRG ROM SHA1: ")
+		returnStringBuilder.WriteString(strings.ToUpper(hex.EncodeToString(rom.Header10.PRGROMSHA1[:])))
+		returnStringBuilder.WriteString("\n")
+		returnStringBuilder.WriteString("PRG ROM SHA256: ")
+		returnStringBuilder.WriteString(strings.ToUpper(hex.EncodeToString(rom.Header10.PRGROMSHA256[:])))
+		returnStringBuilder.WriteString("\n")
 
-		returnString = returnString + "CHR ROM Size: " + strconv.Itoa(int(rom.Header10.CHRROMCalculatedSize)) + " bytes\n"
+		returnStringBuilder.WriteString("CHR ROM Size: ")
+		returnStringBuilder.WriteString(strconv.Itoa(int(rom.Header10.CHRROMCalculatedSize)))
+		returnStringBuilder.WriteString(" bytes\n")
 
 		if rom.Header10.CHRROMCalculatedSize > 0 {
 			chrSum16Bytes := make([]byte, 2)
 			binary.BigEndian.PutUint16(chrSum16Bytes, rom.Header10.CHRROMSum16)
-			returnString = returnString + "CHR ROM Sum16: " + strings.ToUpper(hex.EncodeToString(chrSum16Bytes)) + "\n"
+			returnStringBuilder.WriteString("CHR ROM Sum16: ")
+			returnStringBuilder.WriteString(strings.ToUpper(hex.EncodeToString(chrSum16Bytes)))
+			returnStringBuilder.WriteString("\n")
 
 			chrCrc32Bytes := make([]byte, 4)
 			binary.BigEndian.PutUint32(chrCrc32Bytes, rom.Header10.CHRROMCRC32)
-			returnString = returnString + "CHR ROM CRC32: " + strings.ToUpper(hex.EncodeToString(chrCrc32Bytes)) + "\n"
+			returnStringBuilder.WriteString("CHR ROM CRC32: ")
+			returnStringBuilder.WriteString(strings.ToUpper(hex.EncodeToString(chrCrc32Bytes)))
+			returnStringBuilder.WriteString("\n")
 
-			returnString = returnString + "CHR ROM MD5: " + strings.ToUpper(hex.EncodeToString(rom.Header10.CHRROMMD5[:])) + "\n"
-			returnString = returnString + "CHR ROM SHA1: " + strings.ToUpper(hex.EncodeToString(rom.Header10.CHRROMSHA1[:])) + "\n"
-			returnString = returnString + "CHR ROM SHA256: " + strings.ToUpper(hex.EncodeToString(rom.Header10.CHRROMSHA256[:])) + "\n"
+			returnStringBuilder.WriteString("CHR ROM MD5: ")
+			returnStringBuilder.WriteString(strings.ToUpper(hex.EncodeToString(rom.Header10.CHRROMMD5[:])))
+			returnStringBuilder.WriteString("\n")
+			returnStringBuilder.WriteString("CHR ROM SHA1: ")
+			returnStringBuilder.WriteString(strings.ToUpper(hex.EncodeToString(rom.Header10.CHRROMSHA1[:])))
+			returnStringBuilder.WriteString("\n")
+			returnStringBuilder.WriteString("CHR ROM SHA256: ")
+			returnStringBuilder.WriteString(strings.ToUpper(hex.EncodeToString(rom.Header10.CHRROMSHA256[:])))
+			returnStringBuilder.WriteString("\n")
 		}
 
+		returnStringBuilder.WriteString("Trainer Size: ")
+
 		if !rom.Header10.Trainer {
-			returnString = returnString + "Trainer Size: 0 bytes\n"
+			returnStringBuilder.WriteString("0 bytes\n")
 		} else {
-			returnString = returnString + "Trainer Size: " + strconv.Itoa(int(rom.Header10.TrainerCalculatedSize)) + " bytes\n"
+			returnStringBuilder.WriteString(strconv.Itoa(int(rom.Header10.TrainerCalculatedSize)))
+			returnStringBuilder.WriteString(" bytes\n")
 
 			if rom.Header10.TrainerCalculatedSize > 0 {
 				trainerSum16Bytes := make([]byte, 2)
 				binary.BigEndian.PutUint16(trainerSum16Bytes, rom.Header10.TrainerSum16)
-				returnString = returnString + "Trainer Sum16: " + strings.ToUpper(hex.EncodeToString(trainerSum16Bytes)) + "\n"
+				returnStringBuilder.WriteString("Trainer Sum16: ")
+				returnStringBuilder.WriteString(strings.ToUpper(hex.EncodeToString(trainerSum16Bytes)))
+				returnStringBuilder.WriteString("\n")
 
 				trainerCrc32Bytes := make([]byte, 4)
 				binary.BigEndian.PutUint32(trainerCrc32Bytes, rom.Header10.TrainerCRC32)
-				returnString = returnString + "Trainer CRC32: " + strings.ToUpper(hex.EncodeToString(trainerCrc32Bytes)) + "\n"
+				returnStringBuilder.WriteString("Trainer CRC32: ")
+				returnStringBuilder.WriteString(strings.ToUpper(hex.EncodeToString(trainerCrc32Bytes)))
+				returnStringBuilder.WriteString("\n")
 
-				returnString = returnString + "Trainer MD5: " + strings.ToUpper(hex.EncodeToString(rom.Header10.TrainerMD5[:])) + "\n"
-				returnString = returnString + "Trainer SHA1: " + strings.ToUpper(hex.EncodeToString(rom.Header10.TrainerSHA1[:])) + "\n"
-				returnString = returnString + "Trainer SHA256: " + strings.ToUpper(hex.EncodeToString(rom.Header10.TrainerSHA256[:])) + "\n"
+				returnStringBuilder.WriteString("Trainer MD5: ")
+				returnStringBuilder.WriteString(strings.ToUpper(hex.EncodeToString(rom.Header10.TrainerMD5[:])))
+				returnStringBuilder.WriteString("\n")
+				returnStringBuilder.WriteString("Trainer SHA1: ")
+				returnStringBuilder.WriteString(strings.ToUpper(hex.EncodeToString(rom.Header10.TrainerSHA1[:])))
+				returnStringBuilder.WriteString("\n")
+				returnStringBuilder.WriteString("Trainer SHA256: ")
+				returnStringBuilder.WriteString(strings.ToUpper(hex.EncodeToString(rom.Header10.TrainerSHA256[:])))
+				returnStringBuilder.WriteString("\n")
 			}
 		}
 
-		returnString = returnString + "PRG RAM Size: " + strconv.Itoa(8192*int(rom.Header10.PRGRAMSize)) + " bytes\n"
+		returnStringBuilder.WriteString("PRG RAM Size: ")
+		returnStringBuilder.WriteString(strconv.Itoa(8192 * int(rom.Header10.PRGRAMSize)))
+		returnStringBuilder.WriteString(" bytes\n")
+
+		returnStringBuilder.WriteString("Mirroring Type: ")
 
 		if !rom.Header10.FourScreen {
 			if !rom.Header10.MirroringType {
-				returnString = returnString + "Mirroring Type: Horizontal (vertical arrangement) (CIRAM A10 = PPU A11)\n"
+				returnStringBuilder.WriteString("Horizontal (vertical arrangement) (CIRAM A10 = PPU A11)\n")
 			} else {
-				returnString = returnString + "Mirroring Type: Vertical (horizontal arrangement) (CIRAM A10 = PPU A10)\n"
+				returnStringBuilder.WriteString("Vertical (horizontal arrangement) (CIRAM A10 = PPU A10)\n")
 			}
 		} else {
-			returnString = returnString + "Mirroring Type: N/A (Four-Screen VRAM)"
+			returnStringBuilder.WriteString("N/A (Four-Screen VRAM)")
 		}
+
+		returnStringBuilder.WriteString("Battery Backup: ")
 
 		if !rom.Header10.Battery {
-			returnString = returnString + "Battery Backup: No\n"
+			returnStringBuilder.WriteString("No\n")
 		} else {
-			returnString = returnString + "Battery Backup: Yes\n"
+			returnStringBuilder.WriteString("Yes\n")
 		}
+
+		returnStringBuilder.WriteString("Vs. Unisystem: ")
 
 		if !rom.Header10.VsUnisystem {
-			returnString = returnString + "Vs. Unisystem: No\n"
+			returnStringBuilder.WriteString("No\n")
 		} else {
-			returnString = returnString + "Vs. Unisystem: Yes\n"
+			returnStringBuilder.WriteString("Yes\n")
 		}
+
+		returnStringBuilder.WriteString("Playchoice 10: ")
 
 		if !rom.Header10.PlayChoice10 {
-			returnString = returnString + "Playchoice 10: No\n"
+			returnStringBuilder.WriteString("No\n")
 		} else {
-			returnString = returnString + "Playchoice 10: Yes\n"
+			returnStringBuilder.WriteString("Yes\n")
 		}
 
-		returnString = returnString + "Mapper: " + strconv.Itoa(int(rom.Header10.Mapper)) + "\n"
+		returnStringBuilder.WriteString("Mapper: ")
+		returnStringBuilder.WriteString(strconv.Itoa(int(rom.Header10.Mapper)))
+		returnStringBuilder.WriteString("\n")
+
+		returnStringBuilder.WriteString("TV System: ")
 
 		if !rom.Header10.TVSystem {
-			returnString = returnString + "TV System: NTSC\n"
+			returnStringBuilder.WriteString("NTSC\n")
 		} else {
-			returnString = returnString + "TV System: PAL\n"
+			returnStringBuilder.WriteString("PAL\n")
 		}
 
 		if rom.HeaderData != nil {
-			returnString = returnString + "ROM Header (Existing):   " + strings.ToUpper(hex.EncodeToString(rom.HeaderData)) + "\n"
+			returnStringBuilder.WriteString("ROM Header (Existing):   ")
+			returnStringBuilder.WriteString(strings.ToUpper(hex.EncodeToString(rom.HeaderData)))
+			returnStringBuilder.WriteString("\n")
 		}
 
 		calculatedHeaderBytes, err := EncodeNESROMHeader(rom, true, true)
@@ -456,12 +607,13 @@ func (rom *NESROM) String() string {
 			return ""
 		}
 
-		returnString = returnString + "ROM Header (Calculated): " + strings.ToUpper(hex.EncodeToString(calculatedHeaderBytes))
+		returnStringBuilder.WriteString("ROM Header (Calculated): ")
+		returnStringBuilder.WriteString(strings.ToUpper(hex.EncodeToString(calculatedHeaderBytes)))
 	} else {
 		return ""
 	}
 
-	return returnString
+	return returnStringBuilder.String()
 }
 
 // Read data from a byte slice and decode it into an NESROM struct
@@ -490,7 +642,7 @@ func DecodeNESROM(inputFile []byte, enableInes bool, preserveTrainer bool, relat
 		return romData, &NESROMError{Text: "File too small to be a headered NES ROM."}
 	}
 
-	if bytes.Compare(inputFile[0:4], []byte(NES_HEADER_MAGIC)) != 0 {
+	if !bytes.Equal(inputFile[0:4], []byte(NES_HEADER_MAGIC)) {
 		return romData, &NESROMError{Text: "Unable to find NES magic."}
 	}
 
@@ -537,7 +689,7 @@ func DecodeNESROM(inputFile []byte, enableInes bool, preserveTrainer bool, relat
 		romData.CHRROMData = chrRomData
 		romData.MiscROMData = miscRomData
 
-		if romData.MiscROMData != nil && len(romData.MiscROMData) > 0 {
+		if len(romData.MiscROMData) > 0 {
 			header20Data.MiscROMCalculatedSize = uint64(len(romData.MiscROMData))
 		} else {
 			header20Data.MiscROMCalculatedSize = 0
@@ -998,7 +1150,7 @@ func UpdateChecksums(nesRom *NESROM) error {
 			nesRom.Header20.PRGROMSHA256 = sha256.Sum256(nesRom.PRGROMData)
 		}
 
-		if nesRom.CHRROMData != nil && len(nesRom.CHRROMData) > 0 {
+		if len(nesRom.CHRROMData) > 0 {
 			chrRomSum16, err := calculateSum16(nesRom.CHRROMData)
 			if err != nil {
 				return err
@@ -1011,7 +1163,7 @@ func UpdateChecksums(nesRom *NESROM) error {
 			nesRom.Header20.CHRROMSHA256 = sha256.Sum256(nesRom.CHRROMData)
 		}
 
-		if nesRom.MiscROMData != nil && len(nesRom.MiscROMData) > 0 {
+		if len(nesRom.MiscROMData) > 0 {
 			miscRomSum16, err := calculateSum16(nesRom.MiscROMData)
 			if err != nil {
 				return err
@@ -1024,7 +1176,7 @@ func UpdateChecksums(nesRom *NESROM) error {
 			nesRom.Header20.MiscROMSHA256 = sha256.Sum256(nesRom.MiscROMData)
 		}
 
-		if nesRom.TrainerData != nil && len(nesRom.TrainerData) > 0 {
+		if len(nesRom.TrainerData) > 0 {
 			trainerSum16, err := calculateSum16(nesRom.TrainerData)
 			if err != nil {
 				return err
@@ -1052,7 +1204,7 @@ func UpdateChecksums(nesRom *NESROM) error {
 			nesRom.Header10.PRGROMSHA256 = sha256.Sum256(nesRom.PRGROMData)
 		}
 
-		if nesRom.CHRROMData != nil && len(nesRom.CHRROMData) > 0 {
+		if len(nesRom.CHRROMData) > 0 {
 			chrRomSum16, err := calculateSum16(nesRom.CHRROMData)
 			if err != nil {
 				return err
@@ -1065,7 +1217,7 @@ func UpdateChecksums(nesRom *NESROM) error {
 			nesRom.Header10.CHRROMSHA256 = sha256.Sum256(nesRom.CHRROMData)
 		}
 
-		if nesRom.TrainerData != nil && len(nesRom.TrainerData) > 0 {
+		if len(nesRom.TrainerData) > 0 {
 			trainerSum16, err := calculateSum16(nesRom.TrainerData)
 			if err != nil {
 				return err
@@ -1123,7 +1275,7 @@ func getStrippedRom(inputFile []byte) ([]byte, []byte, []byte, error) {
 		return inputFile, nil, nil, &NESROMError{Text: "File too small to be a headered NES ROM."}
 	}
 
-	if bytes.Compare(inputFile[0:4], []byte(NES_HEADER_MAGIC)) != 0 {
+	if !bytes.Equal(inputFile[0:4], []byte(NES_HEADER_MAGIC)) {
 		return inputFile, nil, nil, &NESROMError{Text: "Unable to find NES magic."}
 	}
 

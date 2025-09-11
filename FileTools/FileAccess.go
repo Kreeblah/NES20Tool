@@ -1,5 +1,5 @@
 /*
-   Copyright 2021-2022, Christopher Gelatt
+   Copyright 2021-2025, Christopher Gelatt
 
    This file is part of NESTool.
 
@@ -28,7 +28,6 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -282,7 +281,7 @@ func LoadFDSArchive(fileName string, basePath string, generateChecksums bool, pr
 // Read in INES and NES 2.0 files recursively from a given path
 func LoadROMRecursive(basePath string, enableInes bool, preserveTrainers bool, printChecksums bool) ([]*NESTool.NESROM, error) {
 	romSlice := make([]*NESTool.NESROM, 0)
-	nesRegEx, err := regexp.Compile("^.+\\.nes$")
+	nesRegEx, err := regexp.Compile(`^.+\.nes$`)
 	if err != nil {
 		return nil, err
 	}
@@ -326,12 +325,12 @@ func LoadROMRecursive(basePath string, enableInes bool, preserveTrainers bool, p
 // Read in UNIF files recursively from a given base path
 func LoadUNIFRecursive(basePath string, printChecksums bool) ([]*NESTool.NESROM, error) {
 	romSlice := make([]*NESTool.NESROM, 0)
-	unifRegEx, err := regexp.Compile("^.+\\.unif$")
+	unifRegEx, err := regexp.Compile(`^.+\.unif$`)
 	if err != nil {
 		return nil, err
 	}
 
-	unfRegEx, err := regexp.Compile("^.+\\.unf$")
+	unfRegEx, err := regexp.Compile(`^.+\.unf$`)
 	if err != nil {
 		return nil, err
 	}
@@ -375,7 +374,7 @@ func LoadUNIFRecursive(basePath string, printChecksums bool) ([]*NESTool.NESROM,
 // Read in FDS files recursively from a given path
 func LoadFDSArchiveRecursive(basePath string, generateChecksums bool, printChecksums bool) ([]*FDSTool.FDSArchiveFile, error) {
 	archiveSlice := make([]*FDSTool.FDSArchiveFile, 0)
-	fdsRegEx, err := regexp.Compile("^.+\\.fds$")
+	fdsRegEx, err := regexp.Compile(`^.+\.fds$`)
 	if err != nil {
 		return nil, err
 	}
@@ -567,7 +566,7 @@ func WriteROM(romModel *NESTool.NESROM, enableInes bool, truncateRom bool, prese
 			tempFilename = romModel.Name + ".nes"
 		}
 
-		return ioutil.WriteFile(tempFilename, nesRomBytes, 0644)
+		return os.WriteFile(tempFilename, nesRomBytes, 0644)
 	} else {
 		tempRelativePath := romModel.RelativePath
 		if tempRelativePath == "" {
@@ -588,7 +587,7 @@ func WriteROM(romModel *NESTool.NESROM, enableInes bool, truncateRom bool, prese
 			}
 		}()
 
-		return ioutil.WriteFile(tempRomPath, nesRomBytes, 0644)
+		return os.WriteFile(tempRomPath, nesRomBytes, 0644)
 	}
 }
 
@@ -605,7 +604,7 @@ func WriteFDSArchive(archiveModel *FDSTool.FDSArchiveFile, writeFDSHeader bool, 
 			tempFilename = archiveModel.Name + ".nes"
 		}
 
-		return ioutil.WriteFile(tempFilename, fdsArchiveBytes, 0644)
+		return os.WriteFile(tempFilename, fdsArchiveBytes, 0644)
 	} else {
 		tempRelativePath := archiveModel.RelativePath
 		if tempRelativePath == "" {
@@ -626,15 +625,15 @@ func WriteFDSArchive(archiveModel *FDSTool.FDSArchiveFile, writeFDSHeader bool, 
 			}
 		}()
 
-		return ioutil.WriteFile(tempRomPath, fdsArchiveBytes, 0644)
+		return os.WriteFile(tempRomPath, fdsArchiveBytes, 0644)
 	}
 }
 
 // Write a string to a file (used for XML generation)
 func WriteStringToFile(dataString string, filePath string) error {
-	return ioutil.WriteFile(filePath, []byte(dataString), 0644)
+	return os.WriteFile(filePath, []byte(dataString), 0644)
 }
 
 func WriteBytesToFile(dataBytes []byte, filePath string) error {
-	return ioutil.WriteFile(filePath, dataBytes, 0644)
+	return os.WriteFile(filePath, dataBytes, 0644)
 }

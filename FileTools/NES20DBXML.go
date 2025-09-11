@@ -1,5 +1,5 @@
 /*
-   Copyright 2021-2022, Christopher Gelatt
+   Copyright 2021-2025, Christopher Gelatt
 
    This file is part of NESTool.
 
@@ -136,7 +136,7 @@ func MarshalNES20DBXMLFromROMMap(nesRoms map[string]*NESTool.NESROM, enableOrgan
 				if tempRelativePath[0] == os.PathSeparator {
 					tempRelativePath = tempRelativePath[1:]
 				}
-				tempRelativePath = strings.Replace(tempRelativePath, string(os.PathSeparator), "\\", -1)
+				tempRelativePath = strings.ReplaceAll(tempRelativePath, string(os.PathSeparator), "\\")
 				tempGame.Comment = " " + tempRelativePath + " "
 			}
 
@@ -264,7 +264,7 @@ func MarshalNES20DBXMLFromROMMap(nesRoms map[string]*NESTool.NESROM, enableOrgan
 				tempGame.Chrnvram.Size = 64 << nesRoms[index].Header20.CHRNVRAMSize
 			}
 
-			if nesRoms[index].TrainerData != nil && len(nesRoms[index].TrainerData) == 512 {
+			if len(nesRoms[index].TrainerData) == 512 {
 				tempGame.Trainer.Size = 512
 
 				trainerCrc32Bytes := make([]byte, 4)
@@ -304,7 +304,7 @@ func UnmarshalNES20DBXMLToROMMap(xmlPayload string, enableOrganization bool) (ma
 
 		if enableOrganization {
 			tempRelativePath := strings.TrimSpace(xmlStruct.Games[index].Comment)
-			tempRelativePath = strings.Replace(tempRelativePath, "\\", string(os.PathSeparator), -1)
+			tempRelativePath = strings.ReplaceAll(tempRelativePath, "\\", string(os.PathSeparator))
 			tempRom.RelativePath = tempRelativePath
 		}
 

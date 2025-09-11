@@ -1,5 +1,5 @@
 /*
-   Copyright 2021-2022, Christopher Gelatt
+   Copyright 2021-2025, Christopher Gelatt
 
    This file is part of NESTool.
 
@@ -288,7 +288,7 @@ func DecodeFDSSide(inputSide []byte, generateChecksums bool) (*FDSSide, error) {
 	if binary.LittleEndian.Uint16(inputSide[0x38:0x3a]) == testCrc && inputSide[0x3a] == '\x01' {
 		readChecksums = true
 		tempSide.DiskInfoCRC = testCrc
-	} else if bytes.Compare(inputSide[0x38:0x3b], []byte{'\x00', '\x00', '\x01'}) == 0 {
+	} else if bytes.Equal(inputSide[0x38:0x3b], []byte{'\x00', '\x00', '\x01'}) {
 		readChecksums = true
 		if !generateChecksums {
 			tempSide.DiskInfoCRC = binary.LittleEndian.Uint16(inputSide[0x38:0x3a])
@@ -698,7 +698,7 @@ func GetStrippedDiskSideByteSlices(inputFile []byte) ([][]byte, error) {
 		return nil, &FDSError{Text: "File too small to be a valid FDS archive."}
 	}
 
-	if bytes.Compare(inputFile[0:4], []byte(FDS_HEADER_MAGIC)) == 0 {
+	if bytes.Equal(inputFile[0:4], []byte(FDS_HEADER_MAGIC)) {
 		if (uint64(fileSize-16) % FDS_SIDE_SIZE) != 0 {
 			if (uint64(fileSize-16) % QD_SIDE_SIZE) != 0 {
 				return nil, &FDSError{Text: "File is not a valid FDS or QD archive.  " + strconv.Itoa(fileSize-16) + " should be divisible by " + strconv.FormatUint(FDS_SIDE_SIZE, 10) + " for an FDS archive or " + strconv.FormatUint(QD_SIDE_SIZE, 10) + " for a QD archive."}
@@ -733,7 +733,7 @@ func getDiskSideByteSlices(inputFile []byte, isQd bool) ([][]byte, error) {
 
 	for index := 0; uint64(index) < archiveSides; index++ {
 		byteOffset := uint64(index) * sideSize
-		if bytes.Compare(inputFile[byteOffset+1:byteOffset+15], []byte(FDS_MAGIC)) != 0 {
+		if !bytes.Equal(inputFile[byteOffset+1:byteOffset+15], []byte(FDS_MAGIC)) {
 			return nil, &FDSError{Text: "Unable to identify side " + strconv.Itoa(index) + " as an FDS or QD disk side.  File is not a valid FDS or QD archive."}
 		}
 		sideByteSlices = append(sideByteSlices, inputFile[byteOffset:byteOffset+sideSize])

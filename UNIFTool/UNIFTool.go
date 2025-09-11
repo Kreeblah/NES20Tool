@@ -1,5 +1,5 @@
 /*
-   Copyright 2021-2022, Christopher Gelatt
+   Copyright 2021-2025, Christopher Gelatt
 
    This file is part of NESTool.
 
@@ -85,7 +85,7 @@ func DecodeUNIFROM(inputFile []byte) (*NESTool.NESROM, error) {
 // Validate UNIF header
 func IsValidUNIFROM(inputData []byte) (bool, error) {
 	// UNIF header
-	if bytes.Compare(inputData[0:4], []byte(UNIF_MAGIC)) != 0 {
+	if !bytes.Equal(inputData[0:4], []byte(UNIF_MAGIC)) {
 		return false, &NESTool.NESROMError{Text: "Not a valid UNIF ROM."}
 	}
 
@@ -141,7 +141,7 @@ func getNextUNIFChunk(inputData []byte, position uint64) (string, []byte, uint64
 	isMalformedROM := false
 
 	// Skip the four-byte UNIF version number and the reserved bytes if at the beginning of the file
-	if bytes.Compare(inputData[position:(position+4)], []byte(UNIF_MAGIC)) == 0 {
+	if bytes.Equal(inputData[position:(position+4)], []byte(UNIF_MAGIC)) {
 		tempPosition = 32
 	}
 

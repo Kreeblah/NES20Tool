@@ -1,5 +1,5 @@
 /*
-   Copyright 2021-2022, Christopher Gelatt
+   Copyright 2021-2025, Christopher Gelatt
 
    This file is part of NESTool.
 
@@ -26,7 +26,6 @@ import (
 	"NES20Tool/ProcessingTools"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -49,7 +48,7 @@ func main() {
 	romSetXmlFile := flag.String("xml-file", "", "The path to an XML file to use for the operation.")
 	xmlFormat := flag.String("xml-format", "default", "The format of the imported or exported XML file. {default|nes20db}")
 	formatTransformDestination := flag.String("format-transform-destination", "", "Destination file for format transform operations.")
-	formatTransformType := flag.String("format-transform-type", "", "Format of destination file for transform operations. {default|nes20db|sanni}")
+	formatTransformType := flag.String("format-transform-type", "", "Format of destination file for transform operations. {default|nes20db}")
 	romToAnalyze := flag.String("rom-file", "", "An NES ROM file to analyze with the rominfo operation.")
 	inputRom := flag.String("input-rom", "", "The ROM to edit when editing a header field.")
 	outputRom := flag.String("output-rom", "", "The ROM to write when editing a header field.")
@@ -172,7 +171,7 @@ func main() {
 		// write out a ROM set in a destination location.
 	} else if *romSetCommand == "write" {
 		println("Loading XML file from: " + *romSetXmlFile)
-		xmlPayload, err := ioutil.ReadFile(*romSetXmlFile)
+		xmlPayload, err := os.ReadFile(*romSetXmlFile)
 		if err != nil {
 			panic(err)
 		}
@@ -295,7 +294,7 @@ func main() {
 		os.Exit(0)
 	} else if *romSetCommand == "transform" {
 		println("Loading XML file from: " + *romSetXmlFile)
-		xmlPayload, err := ioutil.ReadFile(*romSetXmlFile)
+		xmlPayload, err := os.ReadFile(*romSetXmlFile)
 		if err != nil {
 			panic(err)
 		}
@@ -326,11 +325,6 @@ func main() {
 			}
 		} else if *formatTransformType == "nes20db" {
 			transformPayloadString, err = FileTools.MarshalNES20DBXMLFromROMMap(romData, *romSetOrganization)
-			if err != nil {
-				panic(err)
-			}
-		} else if *formatTransformType == "sanni" {
-			transformPayloadBytes, err = FileTools.MarshalDBFileFromROMMap(romData, *romSetEnableV1)
 			if err != nil {
 				panic(err)
 			}
@@ -379,7 +373,7 @@ func main() {
 		switch *romFieldName {
 		case "prg-rom-byte-size":
 			if strConvErr != nil {
-				panic(err)
+				panic(strConvErr)
 			}
 
 			if nesRom.Header20 != nil {
@@ -396,7 +390,7 @@ func main() {
 			}
 		case "prg-ram-size":
 			if strConvErr != nil {
-				panic(err)
+				panic(strConvErr)
 			}
 
 			if nesRom.Header20 != nil {
@@ -424,7 +418,7 @@ func main() {
 			}
 
 			if strConvErr != nil {
-				panic(err)
+				panic(strConvErr)
 			}
 
 			if paramInt > 15 {
@@ -435,7 +429,7 @@ func main() {
 			nesRom.Header20.PRGNVRAMSize = uint8(paramInt)
 		case "chr-rom-byte-size":
 			if strConvErr != nil {
-				panic(err)
+				panic(strConvErr)
 			}
 
 			if nesRom.Header20 != nil {
@@ -457,7 +451,7 @@ func main() {
 			}
 
 			if strConvErr != nil {
-				panic(err)
+				panic(strConvErr)
 			}
 
 			if paramInt > 255 {
@@ -473,7 +467,7 @@ func main() {
 			}
 
 			if strConvErr != nil {
-				panic(err)
+				panic(strConvErr)
 			}
 
 			if paramInt > 15 {
@@ -489,7 +483,7 @@ func main() {
 			}
 
 			if strConvErr != nil {
-				panic(err)
+				panic(strConvErr)
 			}
 
 			if paramInt > 3 {
@@ -585,7 +579,7 @@ func main() {
 			}
 
 			if strConvErr != nil {
-				panic(err)
+				panic(strConvErr)
 			}
 
 			if paramInt > 3 {
@@ -615,7 +609,7 @@ func main() {
 			}
 
 			if strConvErr != nil {
-				panic(err)
+				panic(strConvErr)
 			}
 
 			if paramInt < 3 || paramInt > 15 {
@@ -626,7 +620,7 @@ func main() {
 			nesRom.Header20.ExtendedConsoleType = uint8(paramInt)
 		case "mapper-number":
 			if strConvErr != nil {
-				panic(err)
+				panic(strConvErr)
 			}
 
 			if nesRom.Header20 != nil {
@@ -645,10 +639,6 @@ func main() {
 				println("No valid ROM found")
 				os.Exit(1)
 			}
-
-			if err != nil {
-				panic(err)
-			}
 		case "submapper-number":
 			if nesRom.Header20 == nil {
 				println("Submappers are only available in NES 2.0 headers")
@@ -656,7 +646,7 @@ func main() {
 			}
 
 			if strConvErr != nil {
-				panic(err)
+				panic(strConvErr)
 			}
 
 			if paramInt > 15 {
@@ -672,7 +662,7 @@ func main() {
 			}
 
 			if strConvErr != nil {
-				panic(err)
+				panic(strConvErr)
 			}
 
 			if paramInt > 3 {
@@ -693,7 +683,7 @@ func main() {
 			}
 
 			if strConvErr != nil {
-				panic(err)
+				panic(strConvErr)
 			}
 
 			if paramInt > 15 {
@@ -714,7 +704,7 @@ func main() {
 			}
 
 			if strConvErr != nil {
-				panic(err)
+				panic(strConvErr)
 			}
 
 			if paramInt > 15 {
@@ -730,7 +720,7 @@ func main() {
 			}
 
 			if strConvErr != nil {
-				panic(err)
+				panic(strConvErr)
 			}
 
 			if paramInt > 63 {

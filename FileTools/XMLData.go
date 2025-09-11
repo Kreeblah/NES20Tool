@@ -1,5 +1,5 @@
 /*
-   Copyright 2021-2022, Christopher Gelatt
+   Copyright 2021-2025, Christopher Gelatt
 
    This file is part of NESTool.
 
@@ -459,7 +459,7 @@ func MarshalXMLFromROMMap(nesRoms map[string]*NESTool.NESROM, fdsArchives map[st
 				if tempRelativePath[0] == os.PathSeparator {
 					tempRelativePath = tempRelativePath[1:]
 				}
-				tempRelativePath = strings.Replace(tempRelativePath, string(os.PathSeparator), "/", -1)
+				tempRelativePath = strings.ReplaceAll(tempRelativePath, string(os.PathSeparator), "/")
 				tempXmlRom.RelativePath = tempRelativePath
 			}
 
@@ -583,7 +583,7 @@ func MarshalXMLFromROMMap(nesRoms map[string]*NESTool.NESROM, fdsArchives map[st
 				if tempRelativePath[0] == os.PathSeparator {
 					tempRelativePath = tempRelativePath[1:]
 				}
-				tempRelativePath = strings.Replace(tempRelativePath, string(os.PathSeparator), "/", -1)
+				tempRelativePath = strings.ReplaceAll(tempRelativePath, string(os.PathSeparator), "/")
 				tempXmlRom.RelativePath = tempRelativePath
 			}
 
@@ -666,7 +666,7 @@ func MarshalXMLFromROMMap(nesRoms map[string]*NESTool.NESROM, fdsArchives map[st
 			if tempRelativePath[0] == os.PathSeparator {
 				tempRelativePath = tempRelativePath[1:]
 			}
-			tempRelativePath = strings.Replace(tempRelativePath, string(os.PathSeparator), "/", -1)
+			tempRelativePath = strings.ReplaceAll(tempRelativePath, string(os.PathSeparator), "/")
 			tempXmlRom.RelativePath = tempRelativePath
 		}
 
@@ -811,8 +811,8 @@ func UnmarshalXMLToROMMap(xmlPayload string, enableInes bool, preserveTrainer bo
 
 		if enableOrganization {
 			tempRelativePath := xmlStruct.XMLROMs[index].RelativePath
-			tempRelativePath = strings.Replace(tempRelativePath, "/", string(os.PathSeparator), -1)
-			tempRelativePath = strings.Replace(tempRelativePath, "&amp;", "&", -1)
+			tempRelativePath = strings.ReplaceAll(tempRelativePath, "/", string(os.PathSeparator))
+			tempRelativePath = strings.ReplaceAll(tempRelativePath, "&amp;", "&")
 			tempRom.RelativePath = tempRelativePath
 		}
 
@@ -1112,7 +1112,7 @@ func UnmarshalXMLToROMMap(xmlPayload string, enableInes bool, preserveTrainer bo
 
 			if enableOrganization {
 				tempRelativePath := xmlStruct.XMLROMs[index].RelativePath
-				tempRelativePath = strings.Replace(tempRelativePath, "/", string(os.PathSeparator), -1)
+				tempRelativePath = strings.ReplaceAll(tempRelativePath, "/", string(os.PathSeparator))
 				tempArchive.RelativePath = tempRelativePath
 			}
 
