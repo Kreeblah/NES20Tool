@@ -32,7 +32,7 @@ To use this tool, compile it for your favorite OS and then run it with the follo
     -format-transform-destination
         Destination file for format transform operations.
     -format-transform-type
-        Format of destination file for transform operations. {default|nes20db|sanni}
+        Format of destination file for transform operations. {default|nes20db}
     -generate-fds-crcs
         Generate FDS CRCs for data chunks.  Few, if any, emulators use these.
     -operation string
